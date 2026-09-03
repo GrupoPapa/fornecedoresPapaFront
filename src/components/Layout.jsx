@@ -20,6 +20,7 @@ export default function Layout() {
       </header>
 
       <nav className="menu">
+        <NavLink to="/pedidos" className={classe}>Pedidos</NavLink>
         <NavLink to="/produtos" className={classe}>Produtos</NavLink>
         {admin && <NavLink to="/admin/fornecedores" className={classe}>Fornecedores</NavLink>}
         {admin && <NavLink to="/admin/usuarios" className={classe}>Usuários</NavLink>}

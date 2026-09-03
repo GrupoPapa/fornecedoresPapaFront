@@ -9,7 +9,7 @@ export default function RotaProtegida({ children, somenteAdmin = false }) {
     return <Navigate to="/login" state={{ de: local.pathname }} replace />
   }
   if (somenteAdmin && !admin) {
-    return <Navigate to="/produtos" replace />
+    return <Navigate to="/pedidos" replace />
   }
   return children
 }

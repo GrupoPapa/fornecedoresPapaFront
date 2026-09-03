@@ -35,7 +35,7 @@ export default function TrocarSenhaPage() {
       atualizarUsuario({ ...usuario, trocarSenha: false })
       setSucesso('Senha alterada com sucesso.')
       setSenhaAtual(''); setNovaSenha(''); setConfirmacao('')
-      setTimeout(() => navegar('/produtos', { replace: true }), 800)
+      setTimeout(() => navegar('/pedidos', { replace: true }), 800)
     } catch (err) {
       setErro(mensagemErro(err))
     } finally {
@@ -73,7 +73,7 @@ export default function TrocarSenhaPage() {
             {carregando ? 'Salvando...' : 'Salvar nova senha'}
           </button>
           <button type="button" className="btn-secundario"
-                  onClick={() => (obrigatoria ? sair() : navegar('/produtos'))}>
+                  onClick={() => (obrigatoria ? sair() : navegar('/pedidos'))}>
             {obrigatoria ? 'Sair' : 'Voltar'}
           </button>
         </div>

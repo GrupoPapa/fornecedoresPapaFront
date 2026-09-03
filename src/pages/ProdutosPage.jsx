@@ -101,13 +101,16 @@ export default function ProdutosPage() {
         <div>
           <h2>Produtos</h2>
           <p>{admin
-            ? 'Todos os cadastros enviados pelos fornecedores.'
-            : 'Cadastre os produtos e envie para análise da empresa.'}</p>
+            ? 'Todos os produtos, de qualquer pedido — use a aba Pedidos para analisar em lote.'
+            : 'Todos os seus produtos. Para cadastrar novos, use a aba Pedidos.'}</p>
         </div>
         <div className="botoes">
           <button type="button" className="btn-secundario" onClick={() => exportar('xlsx')}>Exportar Excel</button>
           <button type="button" className="btn-secundario" onClick={() => exportar('csv')}>Exportar CSV</button>
-          <button type="button" className="btn-primario" onClick={() => navegar('/produtos/novo')}>Novo produto</button>
+          {admin && (
+            <button type="button" className="btn-primario"
+                    onClick={() => navegar('/produtos/novo')}>Novo produto avulso</button>
+          )}
         </div>
       </div>
 
@@ -153,6 +156,7 @@ export default function ProdutosPage() {
         <table>
           <thead>
             <tr>
+              <th>Pedido</th>
               <th>Código</th>
               <th>Descrição</th>
               {admin && <th>Fornecedor</th>}
@@ -172,13 +176,19 @@ export default function ProdutosPage() {
           </thead>
           <tbody>
             {carregando && (
-              <tr><td colSpan={admin ? 15 : 14} className="vazio">Carregando...</td></tr>
+              <tr><td colSpan={admin ? 16 : 15} className="vazio">Carregando...</td></tr>
             )}
             {!carregando && dados.conteudo.length === 0 && (
-              <tr><td colSpan={admin ? 15 : 14} className="vazio">Nenhum produto encontrado.</td></tr>
+              <tr><td colSpan={admin ? 16 : 15} className="vazio">Nenhum produto encontrado.</td></tr>
             )}
             {!carregando && dados.conteudo.map((p) => (
               <tr key={p.id}>
+                <td>{p.pedidoNumero
+                  ? <a href={`/pedidos/${p.pedidoId}`}
+                       onClick={(e) => { e.preventDefault(); navegar(`/pedidos/${p.pedidoId}`) }}>
+                      {p.pedidoNumero}
+                    </a>
+                  : 'avulso'}</td>
                 <td>{p.codigo}</td>
                 <td style={{ whiteSpace: 'normal', minWidth: 220 }}>{p.descricao}</td>
                 {admin && <td>{p.fornecedorNome}</td>}

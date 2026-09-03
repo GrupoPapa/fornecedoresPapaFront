@@ -14,7 +14,7 @@ export default function LoginPage() {
   const [carregando, setCarregando] = useState(false)
 
   if (usuario) {
-    return <Navigate to={local.state?.de || '/produtos'} replace />
+    return <Navigate to={local.state?.de || '/pedidos'} replace />
   }
 
   async function enviar(e) {
@@ -23,7 +23,7 @@ export default function LoginPage() {
     setCarregando(true)
     try {
       await entrar(login.trim(), senha)
-      navegar(local.state?.de || '/produtos', { replace: true })
+      navegar(local.state?.de || '/pedidos', { replace: true })
     } catch (err) {
       setErro(mensagemErro(err, 'Não foi possível entrar. Verifique os dados informados.'))
     } finally {

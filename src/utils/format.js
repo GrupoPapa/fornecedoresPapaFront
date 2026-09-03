@@ -22,6 +22,13 @@ export function formatarNumero(valor, casas = 4) {
   })
 }
 
+export const ROTULO_STATUS_PEDIDO = {
+  ABERTO: 'Em preenchimento',
+  ENVIADO: 'Aguardando análise',
+  APROVADO: 'Aprovado',
+  REPROVADO: 'Devolvido para correção'
+}
+
 export const ROTULO_STATUS = {
   RASCUNHO: 'Rascunho',
   ENVIADO: 'Enviado',
@@ -51,7 +58,8 @@ export function rotulosProduto(tipo) {
       caixaAjuda: '',
       pallet: 'm² por pallet',
       palletAjuda: 'Metros quadrados fechados por pallet.',
-      mostrarMetroCaixa: false
+      mostrarMetroCaixa: false,
+      mostrarMetroPallet: true
     }
   }
   return {
@@ -64,6 +72,8 @@ export function rotulosProduto(tipo) {
     caixaAjuda: 'Ex.: 1,44',
     pallet: 'Metro quadrado do pallet',
     palletAjuda: 'Deve ser maior ou igual ao metro quadrado da caixa.',
-    mostrarMetroCaixa: true
+    // medidas de caixa/pallet sao pedidas apenas para piso e revestimento
+    mostrarMetroCaixa: false,
+    mostrarMetroPallet: false
   }
 }

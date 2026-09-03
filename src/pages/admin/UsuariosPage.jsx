@@ -6,7 +6,8 @@ import Campo from '../../components/Campo'
 import Modal from '../../components/Modal'
 import Paginacao from '../../components/Paginacao'
 
-const VAZIO = { nome: '', email: '', perfil: 'FORNECEDOR', fornecedorId: '', senhaProvisoria: '', ativo: true }
+const VAZIO = { nome: '', email: '', perfil: 'FORNECEDOR', fornecedorId: '',
+  senhaProvisoria: '', ativo: true, enviarEmail: true }
 
 export default function UsuariosPage() {
   const [dados, setDados] = useState({ conteudo: [], pagina: 0, totalPaginas: 0, totalElementos: 0 })
@@ -46,7 +47,8 @@ export default function UsuariosPage() {
       perfil: edicao.perfil,
       fornecedorId: edicao.perfil === 'FORNECEDOR' ? Number(edicao.fornecedorId) : null,
       senhaProvisoria: edicao.senhaProvisoria || null,
-      ativo: edicao.ativo
+      ativo: edicao.ativo,
+      enviarEmail: edicao.enviarEmail !== false
     }
     try {
       if (edicao.id) {
@@ -68,7 +70,8 @@ export default function UsuariosPage() {
   async function salvarSenha() {
     setErro('')
     try {
-      const resposta = await usuariosApi.definirSenha(definindoSenha.usuario.id, definindoSenha.senha)
+      const resposta = await usuariosApi.definirSenha(
+        definindoSenha.usuario.id, definindoSenha.senha, definindoSenha.enviarEmail !== false)
       setDefinindoSenha(null)
       setSenhaGerada(resposta)
     } catch (err) {
@@ -134,7 +137,7 @@ export default function UsuariosPage() {
                     Editar
                   </button>
                   <button type="button" className="btn-secundario btn-pequeno"
-                          onClick={() => setDefinindoSenha({ usuario: u, senha: '' })}>
+                          onClick={() => setDefinindoSenha({ usuario: u, senha: '', enviarEmail: true })}>
                     Definir senha
                   </button>
                   <button type="button" className="btn-perigo btn-pequeno" onClick={() => alternarSituacao(u)}>
@@ -187,11 +190,18 @@ export default function UsuariosPage() {
               </Campo>
             </div>
             {!edicao.id && (
-              <Campo label="Senha de acesso" erro={erros.senhaProvisoria}
-                     ajuda="Mínimo de 8 caracteres. Em branco, o sistema gera uma para você repassar.">
-                <input value={edicao.senhaProvisoria}
-                       onChange={(e) => setEdicao({ ...edicao, senhaProvisoria: e.target.value })} />
-              </Campo>
+              <>
+                <Campo label="Senha de acesso" erro={erros.senhaProvisoria}
+                       ajuda="Mínimo de 8 caracteres. Em branco, o sistema gera uma para você repassar.">
+                  <input value={edicao.senhaProvisoria}
+                         onChange={(e) => setEdicao({ ...edicao, senhaProvisoria: e.target.value })} />
+                </Campo>
+                <label className="caixa-selecao">
+                  <input type="checkbox" checked={edicao.enviarEmail !== false}
+                         onChange={(e) => setEdicao({ ...edicao, enviarEmail: e.target.checked })} />
+                  <span>Enviar os dados de acesso para o e-mail informado</span>
+                </label>
+              </>
             )}
             <div className="botoes" style={{ justifyContent: 'flex-end' }}>
               <button type="button" className="btn-secundario" onClick={() => setEdicao(null)}>Cancelar</button>
@@ -215,14 +225,29 @@ export default function UsuariosPage() {
             <input value={definindoSenha.senha} autoFocus
                    onChange={(e) => setDefinindoSenha({ ...definindoSenha, senha: e.target.value })} />
           </Campo>
+          <label className="caixa-selecao">
+            <input type="checkbox" checked={definindoSenha.enviarEmail !== false}
+                   onChange={(e) => setDefinindoSenha({ ...definindoSenha, enviarEmail: e.target.checked })} />
+            <span>Enviar a nova senha para {definindoSenha.usuario.email}</span>
+          </label>
         </Modal>
       )}
 
       {senhaGerada && (
         <Modal titulo="Senha de acesso" aoFechar={() => setSenhaGerada(null)}
                rodape={<button type="button" className="btn-primario" onClick={() => setSenhaGerada(null)}>Fechar</button>}>
+          {senhaGerada.emailEnviado === true && (
+            <div className="aviso sucesso">
+              Dados de acesso enviados para <strong>{senhaGerada.email}</strong>.
+            </div>
+          )}
+          {senhaGerada.emailEnviado === false && (
+            <div className="aviso atencao">
+              {senhaGerada.avisoEmail || 'O e-mail não pôde ser enviado.'}
+            </div>
+          )}
           <div className="aviso atencao">
-            Anote e envie estes dados ao fornecedor. A senha não será exibida novamente.
+            Anote os dados abaixo. A senha não será exibida novamente.
           </div>
           <p>
             <strong>Login:</strong>{' '}

@@ -125,6 +125,7 @@ td.acoes { display: flex; gap: 6px; }
 .vazio { padding: 32px; text-align: center; color: var(--cor-texto-suave); }
 
 .etiqueta { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.etiqueta.ABERTO   { background: #fff4e5; color: #9a6700; }
 .etiqueta.RASCUNHO { background: #eef1f4; color: #4a5560; }
 .etiqueta.ENVIADO  { background: #e5f0fb; color: var(--cor-info); }
 .etiqueta.APROVADO { background: #e6f4ea; color: var(--cor-sucesso); }
@@ -142,6 +143,45 @@ td.acoes { display: flex; gap: 6px; }
 .filtros .campo { min-width: 180px; flex: 1 1 180px; }
 
 .paginacao { display: flex; gap: 10px; align-items: center; justify-content: flex-end; padding: 12px 0; }
+
+.caixa-selecao {
+  display: flex; align-items: center; gap: 8px; font-size: 13px;
+  padding: 8px 10px; border: 1px solid var(--cor-borda); border-radius: var(--raio);
+  background: #fafbfc; cursor: pointer;
+}
+.caixa-selecao input { width: 16px; height: 16px; margin: 0; cursor: pointer; }
+
+/* ------------------------------------------------------- bloco do WinThor */
+.bloco-winthor {
+  border: 1px solid var(--cor-borda); border-radius: var(--raio);
+  background: #fbfcfd; padding: 16px; margin-top: 4px;
+}
+.bloco-winthor .cabecalho-bloco {
+  display: flex; align-items: baseline; justify-content: space-between;
+  gap: 12px; flex-wrap: wrap; margin-bottom: 4px;
+}
+.bloco-winthor .cabecalho-bloco h3 { margin: 0; font-size: 15px; }
+.legenda-origem { font-size: 12px; color: var(--cor-texto-suave); display: flex; align-items: center; gap: 6px; }
+.legenda-origem .amostra {
+  width: 14px; height: 14px; border-radius: 3px; display: inline-block; margin-left: 8px;
+}
+.legenda-origem .amostra.pendente   { background: #fdeaea; border: 1px solid #eba9a4; }
+.titulo-bloco {
+  margin: 18px 0 10px; font-size: 13px; text-transform: uppercase;
+  letter-spacing: .4px; color: var(--cor-texto-suave);
+  border-bottom: 1px solid var(--cor-borda); padding-bottom: 6px;
+}
+.titulo-bloco:first-of-type { margin-top: 10px; }
+
+/* fundo avermelhado: campo obrigatorio ainda em branco */
+.bloco-winthor input.campo-pendente,
+.bloco-winthor select.campo-pendente {
+  background: #fdeaea; border-color: #eba9a4;
+}
+.bloco-winthor input.campo-pendente:focus,
+.bloco-winthor select.campo-pendente:focus {
+  background: #fff;
+}
 
 /* ------------------------------------------------------------------ galeria */
 .galeria { display: flex; flex-wrap: wrap; gap: 12px; margin-top: 6px; }
