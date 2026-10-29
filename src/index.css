@@ -130,6 +130,9 @@ td.acoes { display: flex; gap: 6px; }
 .etiqueta.ENVIADO  { background: #e5f0fb; color: var(--cor-info); }
 .etiqueta.APROVADO { background: #e6f4ea; color: var(--cor-sucesso); }
 .etiqueta.REPROVADO{ background: #fdecea; color: var(--cor-erro); }
+.etiqueta.DIVERGENCIA { background: #fff4e5; color: #9a6700; }
+.etiqueta.EM_ANALISE  { background: #e5f0fb; color: var(--cor-info); }
+.etiqueta.CANCELADO   { background: #eef1f4; color: #6b7480; text-decoration: line-through; }
 
 /* ------------------------------------------------------------------ avisos */
 .aviso { padding: 10px 12px; border-radius: var(--raio); margin-bottom: 14px; font-size: 13px; }
@@ -173,14 +176,17 @@ td.acoes { display: flex; gap: 6px; }
 }
 .titulo-bloco:first-of-type { margin-top: 10px; }
 
-/* fundo avermelhado: campo obrigatorio ainda em branco */
+/* fundo avermelhado: campo obrigatorio do WinThor - fica marcado mesmo depois
+   de preenchido, para lembrar que precisa de conferencia antes de gravar */
 .bloco-winthor input.campo-pendente,
 .bloco-winthor select.campo-pendente {
   background: #fdeaea; border-color: #eba9a4;
 }
-.bloco-winthor input.campo-pendente:focus,
-.bloco-winthor select.campo-pendente:focus {
-  background: #fff;
+/* mantem a cor quando o bloco esta travado (antes de clicar em "Editar dados") */
+.bloco-winthor input.campo-pendente:disabled,
+.bloco-winthor select.campo-pendente:disabled {
+  background: #fdeaea; border-color: #eba9a4; color: var(--cor-texto);
+  opacity: 1; cursor: not-allowed;
 }
 
 /* ------------------------------------------------------------------ galeria */
@@ -231,6 +237,42 @@ td.acoes { display: flex; gap: 6px; }
 .caixa-login h1 { font-size: 20px; margin: 0 0 4px; }
 .caixa-login p.sub { margin: 0 0 20px; color: var(--cor-texto-suave); font-size: 13px; }
 .caixa-login button { width: 100%; }
+
+/* -------------------------------------------------------- pedido de compra */
+.pedido-compra { display: grid; gap: 16px; grid-template-columns: minmax(0, 1fr); }
+.pedido-compra > * { min-width: 0; }
+.pedido-compra h3 { margin: 0 0 12px; font-size: 15px; }
+.cartao .cabecalho-cartao {
+  display: flex; justify-content: space-between; align-items: center; gap: 10px;
+  flex-wrap: wrap; margin-bottom: 12px;
+}
+.cartao .cabecalho-cartao h3 { margin: 0; }
+.resumo-pedido { display: grid; gap: 10px; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
+.resumo-pedido div span { display: block; font-size: 12px; color: var(--cor-texto-suave); }
+.resumo-pedido div strong { font-size: 14px; }
+.catalogo-lista { max-height: 360px; overflow: auto; border: 1px solid var(--cor-borda); border-radius: var(--raio); }
+.catalogo-lista table td { white-space: normal; }
+.catalogo-lista tr.incluido { background: #f3faf5; }
+.item-novo { font-size: 11px; font-weight: 700; color: var(--cor-alerta); text-transform: uppercase; }
+.texto-suave { color: var(--cor-texto-suave); font-size: 12px; }
+td.numero, th.numero { text-align: right; }
+input.numero { width: 110px; text-align: right; padding: 6px 8px; }
+.linha-total td { font-weight: 700; background: #fafbfc; }
+.divergencia { color: var(--cor-alerta); font-size: 12px; display: block; margin-top: 3px; white-space: normal; }
+.variacao { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.variacao.ACIMA  { background: #fdecea; color: var(--cor-erro); }
+.variacao.ABAIXO { background: #fff4e5; color: #9a6700; }
+.variacao.OK     { background: #e6f4ea; color: var(--cor-sucesso); }
+.variacao.SEM_HISTORICO, .variacao.ERRO, .variacao.PRODUTO_NOVO { background: #eef1f4; color: #4a5560; }
+tr.detalhe-precos td { background: #fbfcfd; white-space: normal; }
+.historico { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+.historico li { border-left: 3px solid var(--cor-borda); padding: 2px 0 2px 10px; }
+.historico li strong { font-size: 13px; }
+.historico li p { margin: 2px 0 0; font-size: 13px; white-space: pre-wrap; }
+.barra-acoes {
+  display: flex; gap: 10px; flex-wrap: wrap; justify-content: flex-end;
+  position: sticky; bottom: 0; background: var(--cor-fundo); padding: 10px 0;
+}
 
 @media (max-width: 640px) {
   .conteudo { padding: 14px; }

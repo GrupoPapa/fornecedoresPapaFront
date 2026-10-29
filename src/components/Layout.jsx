@@ -9,7 +9,7 @@ export default function Layout() {
   return (
     <div className="app">
       <header className="topo">
-        <h1>Portal do Fornecedor · Cadastro de Produtos</h1>
+        <h1>Portal do Fornecedor</h1>
         <div className="usuario">
           <span>
             {usuario?.nome}
@@ -20,8 +20,9 @@ export default function Layout() {
       </header>
 
       <nav className="menu">
-        <NavLink to="/pedidos" className={classe}>Pedidos</NavLink>
-        <NavLink to="/produtos" className={classe}>Produtos</NavLink>
+        <NavLink to="/pedidos" className={classe}>Cadastro de produtos</NavLink>
+        <NavLink to="/compras" className={classe}>Pedidos de compra</NavLink>
+        <NavLink to="/produtos" className={classe}>Todos os produtos</NavLink>
         {admin && <NavLink to="/admin/fornecedores" className={classe}>Fornecedores</NavLink>}
         {admin && <NavLink to="/admin/usuarios" className={classe}>Usuários</NavLink>}
         {admin && <NavLink to="/trocar-senha" className={classe}>Minha senha</NavLink>}

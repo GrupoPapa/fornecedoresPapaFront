@@ -63,8 +63,8 @@ export function rotulosProduto(tipo) {
     }
   }
   return {
-    embalagem: 'Quantidade por embalagem',
-    embalagemAjuda: 'Unidades dentro da caixa.',
+    embalagem: 'Quantidade por embalagem / caixa MASTER',
+    embalagemAjuda: 'Unidades dentro da caixa master.',
     pesoLiquido: 'Peso líquido (kg)',
     pesoBruto: 'Peso bruto (kg)',
     pesoBrutoAjuda: 'Deve ser maior ou igual ao peso líquido.',
@@ -76,4 +76,54 @@ export function rotulosProduto(tipo) {
     mostrarMetroCaixa: false,
     mostrarMetroPallet: false
   }
+}
+
+export const ROTULO_STATUS_COMPRA = {
+  RASCUNHO: 'Em digitação',
+  DIVERGENCIA: 'Divergência de cadastro',
+  EM_ANALISE: 'Em análise fiscal',
+  REPROVADO: 'Devolvido para reavaliação',
+  APROVADO: 'Aprovado',
+  CANCELADO: 'Cancelado'
+}
+
+export const ROTULO_TIPO_COMPRA = {
+  NORMAL: 'Normal',
+  BONIFICADO: 'Bonificado'
+}
+
+export function formatarMoeda(valor, casas = 2) {
+  if (valor === null || valor === undefined || valor === '') return '-'
+  return Number(valor).toLocaleString('pt-BR', {
+    style: 'currency', currency: 'BRL', minimumFractionDigits: casas, maximumFractionDigits: Math.max(casas, 2)
+  })
+}
+
+/** Datas no formato ISO (AAAA-MM-DD), sem converter fuso. */
+export function formatarData(iso) {
+  if (!iso) return '-'
+  const [a, m, d] = String(iso).slice(0, 10).split('-')
+  return `${d}/${m}/${a}`
+}
+
+/** Aceita "1.234,56", "1234,56" ou "1234.56". Devolve null se não for número. */
+export function lerDecimal(texto) {
+  if (texto === null || texto === undefined) return null
+  let t = String(texto).trim().replace(/\s/g, '')
+  if (!t) return null
+  if (t.includes(',')) t = t.replace(/\./g, '').replace(',', '.')
+  const n = Number(t)
+  return Number.isFinite(n) ? n : null
+}
+
+/** Mostra um número para edição no padrão brasileiro, sem separador de milhar. */
+export function decimalParaTexto(valor) {
+  if (valor === null || valor === undefined || valor === '') return ''
+  return String(valor).replace('.', ',')
+}
+
+export function hojeIso() {
+  const d = new Date()
+  const p = (n) => String(n).padStart(2, '0')
+  return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }

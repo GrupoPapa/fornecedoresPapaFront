@@ -27,16 +27,16 @@ http.interceptors.response.use(
 )
 
 const ROTULO_CAMPO = {
-  codigo: 'Código do produto',
+  codigo: 'Código de fábrica do produto',
   descricao: 'Descrição',
-  codBarraCaixa: 'Cód. barras da caixa',
+  codBarraCaixa: 'Cód. barras da caixa MASTER (DUN)',
   codBarraProduto: 'Cód. barras do produto',
   ncm: 'NCM',
   pesoLiquido: 'Peso líquido',
   pesoBruto: 'Peso bruto',
   metroCaixa: 'Metro quadrado da caixa',
   metroPallet: 'Metro quadrado do pallet',
-  qtdEmbalagem: 'Quantidade por embalagem',
+  qtdEmbalagem: 'Quantidade por embalagem / caixa MASTER',
   m2Caixa: 'm² por caixa',
   m2Pallet: 'm² por pallet',
   tipo: 'Tipo de fornecedor',

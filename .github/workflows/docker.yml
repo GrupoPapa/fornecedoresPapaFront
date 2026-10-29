@@ -1,0 +1,70 @@
+# Gera a imagem do front (React + nginx) e publica no Docker Hub (tigrupopapa/cfp-web).
+#
+#   push na main   -> :latest e :sha-<commit>
+#   tag v1.2.3     -> :1.2.3, :1.2 e :latest
+#   Actions > "Run workflow" executa na mao
+#
+# Secrets do repositorio (Settings > Secrets and variables > Actions):
+#   DOCKERHUB_USERNAME  usuario do Docker Hub (tigrupopapa)
+#   DOCKERHUB_TOKEN     access token do Docker Hub (Account settings > Personal access tokens, Read & Write)
+#   PORTAINER_WEBHOOK   opcional: webhook da stack no Portainer, para atualizar sozinho depois do push
+
+name: Docker image
+
+on:
+  push:
+    branches: [ main ]
+    tags: [ 'v*' ]
+  workflow_dispatch:
+
+concurrency:
+  group: docker-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  IMAGEM: tigrupopapa/cfp-web
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - name: Login no Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Tags da imagem
+        id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.IMAGEM }}
+          tags: |
+            type=raw,value=latest,enable=${{ github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') }}
+            type=semver,pattern={{version}}
+            type=semver,pattern={{major}}.{{minor}}
+            type=sha,prefix=sha-
+
+      - name: Build e push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          # o servidor do Portainer roda em amd64
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Atualizar stack no Portainer
+        env:
+          PORTAINER_WEBHOOK: ${{ secrets.PORTAINER_WEBHOOK }}
+        if: ${{ env.PORTAINER_WEBHOOK != '' && github.ref == 'refs/heads/main' }}
+        run: curl -fsS -X POST "$PORTAINER_WEBHOOK"

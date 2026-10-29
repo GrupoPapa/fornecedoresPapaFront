@@ -160,7 +160,7 @@ export default function ProdutosPage() {
               <th>Código</th>
               <th>Descrição</th>
               {admin && <th>Fornecedor</th>}
-              <th>EAN caixa</th>
+              <th>DUN caixa master</th>
               <th>EAN produto</th>
               <th>NCM</th>
               <th>Peso líq.</th>

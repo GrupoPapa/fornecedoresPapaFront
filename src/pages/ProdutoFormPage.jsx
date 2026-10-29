@@ -236,8 +236,8 @@ export default function ProdutoFormPage() {
         )}
 
         <div className="grade">
-          <Campo label="Código do produto" obrigatorio erro={erros.codigo}
-                 ajuda="Código usado pelo fornecedor (ex.: 63238).">
+          <Campo label="Código de fábrica do produto" obrigatorio erro={erros.codigo}
+                 ajuda="Código que o fornecedor usa para o produto (ex.: 63238).">
             <input value={form.codigo} maxLength={30} required disabled={somenteLeitura}
                    className={erros.codigo ? 'invalido' : undefined}
                    onChange={(e) => alterar('codigo', e.target.value)} />
@@ -265,8 +265,8 @@ export default function ProdutoFormPage() {
                    onChange={(e) => alterar('codBarraProduto', somenteDigitos(e.target.value))} />
           </Campo>
 
-          <Campo label="Cód. barras da caixa (DUN)" erro={erros.codBarraCaixa}
-                 ajuda="Opcional (DUN-14). Deixe em branco se a caixa não tiver código próprio.">
+          <Campo label="Cód. barras da caixa MASTER (DUN)" erro={erros.codBarraCaixa}
+                 ajuda="Opcional (DUN-14). Deixe em branco se a caixa master não tiver código próprio.">
             <input value={form.codBarraCaixa} maxLength={14} inputMode="numeric" disabled={somenteLeitura}
                    className={erros.codBarraCaixa ? 'invalido' : undefined}
                    onChange={(e) => alterar('codBarraCaixa', somenteDigitos(e.target.value))} />

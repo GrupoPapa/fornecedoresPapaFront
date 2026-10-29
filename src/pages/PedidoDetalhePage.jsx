@@ -69,18 +69,21 @@ export default function PedidoDetalhePage() {
 
   const editavel = pedido.editavel && !admin
   const emAnalise = admin && pedido.status === 'ENVIADO'
+  // pedido montado pela propria equipe fica em ABERTO: o admin envia e aprova por aqui
+  const adminMontando = admin && pedido.status === 'ABERTO' && (pedido.itens || []).length > 0
+  const podeAprovar = emAnalise || adminMontando
   const piso = ehPiso(pedido.fornecedorTipo)
   const itensComRessalva = (pedido.itens || []).filter((i) => i.status === 'REPROVADO')
 
   // o pedido so pode ser aprovado com o bloco do WinThor completo em TODOS os itens
-  const erpCarregado = !emAnalise || (pedido.itens || []).every((i) => statusErp[i.id] !== undefined)
-  const itensPendentesErp = emAnalise
+  const erpCarregado = !podeAprovar || (pedido.itens || []).every((i) => statusErp[i.id] !== undefined)
+  const itensPendentesErp = podeAprovar
     ? (pedido.itens || []).filter((i) => {
         const e = statusErp[i.id]
         return !e || (!e.completo && !e.integrado)
       })
     : []
-  const bloqueiaAprovacao = emAnalise && (!erpCarregado || itensPendentesErp.length > 0)
+  const bloqueiaAprovacao = podeAprovar && (!erpCarregado || itensPendentesErp.length > 0)
 
   return (
     <>
@@ -120,7 +123,7 @@ export default function PedidoDetalhePage() {
           para devolver ao fornecedor, use <strong>Devolver pedido</strong>.
         </div>
       )}
-      {emAnalise && erpCarregado && itensPendentesErp.length > 0 && (
+      {podeAprovar && erpCarregado && itensPendentesErp.length > 0 && (
         <div className="aviso atencao">
           <strong>Dados do WinThor incompletos.</strong>{' '}
           Todos os campos do WinThor são obrigatórios para aprovar. Use <strong>Dados WinThor</strong>
@@ -148,7 +151,18 @@ export default function PedidoDetalhePage() {
                 {pedido.status === 'REPROVADO' ? 'Reenviar pedido' : 'Enviar pedido'}
               </button>
             )}
-            {emAnalise && (
+            {adminMontando && (
+              <button type="button" className="btn-primario"
+                      onClick={() => {
+                        if (window.confirm(
+                          `Enviar o pedido ${pedido.numero} para análise com ${pedido.qtdItens} item(ns)?`)) {
+                          acao(() => pedidosApi.enviar(pedido.id), 'Pedido enviado para análise.')
+                        }
+                      }}>
+                Enviar para análise
+              </button>
+            )}
+            {podeAprovar && (
               <>
                 <button type="button" className="btn-sucesso" disabled={bloqueiaAprovacao}
                         title={bloqueiaAprovacao
@@ -159,10 +173,12 @@ export default function PedidoDetalhePage() {
                         onClick={() => setAnalise({ aprovado: true, parecer: '' })}>
                   Aprovar pedido
                 </button>
-                <button type="button" className="btn-perigo"
-                        onClick={() => setAnalise({ aprovado: false, parecer: '' })}>
-                  Devolver pedido
-                </button>
+                {emAnalise && (
+                  <button type="button" className="btn-perigo"
+                          onClick={() => setAnalise({ aprovado: false, parecer: '' })}>
+                    Devolver pedido
+                  </button>
+                )}
               </>
             )}
             {admin && pedido.status === 'APROVADO' && (
@@ -285,6 +301,29 @@ export default function PedidoDetalhePage() {
                       Dados WinThor
                     </button>
                   )}
+                  {admin && statusErp[item.id]?.completo && !statusErp[item.id]?.integrado && (
+                    <button type="button" className="btn-primario btn-pequeno" disabled={integrando}
+                            onClick={async () => {
+                              if (!window.confirm(
+                                `Gravar o produto ${item.codigo} no WinThor agora?`)) return
+                              setErro(''); setMensagem(''); setIntegrando(true)
+                              try {
+                                const r = await produtoErpApi.integrar(item.id)
+                                setResultadoErp({
+                                  total: 1, gravados: r.ok ? 1 : 0, comErro: r.ok ? 0 : 1,
+                                  itens: [{ produtoId: r.produtoId, codigo: r.codigo, ok: r.ok,
+                                            codProdErp: r.codProdErp, mensagem: r.mensagem }]
+                                })
+                                await carregar()
+                              } catch (err) {
+                                setErro(mensagemErro(err))
+                              } finally {
+                                setIntegrando(false)
+                              }
+                            }}>
+                      Gravar no WinThor
+                    </button>
+                  )}
                   {emAnalise && item.status !== 'REPROVADO' && (
                     <button type="button" className="btn-perigo btn-pequeno"
                             onClick={() => setRessalva({ item, parecer: '' })}>
@@ -326,8 +365,13 @@ export default function PedidoDetalhePage() {
                                      || (!analise.aprovado && !analise.parecer.trim()
                                          && itensComRessalva.length === 0)}
                            onClick={() => {
+                             const aprovar = async () => {
+                               // pedido montado pela equipe ainda esta ABERTO: envia e aprova
+                               if (pedido.status === 'ABERTO') await pedidosApi.enviar(pedido.id)
+                               return pedidosApi.aprovar(pedido.id, analise.parecer || null)
+                             }
                              const fn = analise.aprovado
-                               ? () => pedidosApi.aprovar(pedido.id, analise.parecer || null)
+                               ? aprovar
                                : () => pedidosApi.reprovar(pedido.id, analise.parecer || null)
                              acao(fn, analise.aprovado ? 'Pedido aprovado.' : 'Pedido devolvido ao fornecedor.')
                              setAnalise(null)

@@ -100,3 +100,36 @@ export const usuariosApi = {
   situacao: (id, ativo) =>
     http.patch(`/api/admin/usuarios/${id}/situacao`, null, { params: { ativo } }).then((r) => r.data)
 }
+
+export const comprasApi = {
+  listar: (params) => http.get('/api/pedidos-compra', { params }).then((r) => r.data),
+  catalogo: (fornecedorId) =>
+    http.get('/api/pedidos-compra/catalogo', { params: fornecedorId ? { fornecedorId } : {} })
+      .then((r) => r.data),
+  filiais: () => http.get('/api/pedidos-compra/filiais').then((r) => r.data),
+  configuracao: () => http.get('/api/pedidos-compra/configuracao').then((r) => r.data),
+  buscar: (id) => http.get(`/api/pedidos-compra/${id}`).then((r) => r.data),
+  criar: (dados, fornecedorId) =>
+    http.post('/api/pedidos-compra', dados, { params: fornecedorId ? { fornecedorId } : {} })
+      .then((r) => r.data),
+  atualizar: (id, dados) => http.put(`/api/pedidos-compra/${id}`, dados).then((r) => r.data),
+  enviar: (id) => http.post(`/api/pedidos-compra/${id}/enviar`).then((r) => r.data),
+  cancelar: (id, parecer) =>
+    http.post(`/api/pedidos-compra/${id}/cancelar`, { parecer }).then((r) => r.data),
+  historico: (id) => http.get(`/api/pedidos-compra/${id}/historico`).then((r) => r.data),
+  situacaoWinthor: (id) => http.get(`/api/pedidos-compra/${id}/winthor`).then((r) => r.data),
+  exportar: (params) =>
+    http.get('/api/pedidos-compra/exportar', { params, responseType: 'blob' }),
+  // setor fiscal
+  comparativo: (id) => http.get(`/api/admin/pedidos-compra/${id}/comparativo`).then((r) => r.data),
+  resolverDivergencia: (id, dados) =>
+    http.post(`/api/admin/pedidos-compra/${id}/resolver-divergencia`, dados || {}).then((r) => r.data),
+  aprovar: (id, dados) =>
+    http.post(`/api/admin/pedidos-compra/${id}/aprovar`, dados || {}).then((r) => r.data),
+  reprovar: (id, parecer) =>
+    http.post(`/api/admin/pedidos-compra/${id}/reprovar`, { parecer }).then((r) => r.data),
+  gerarSugestao: (id) =>
+    http.post(`/api/admin/pedidos-compra/${id}/gerar-sugestao`).then((r) => r.data),
+  voltarAnalise: (id) =>
+    http.post(`/api/admin/pedidos-compra/${id}/voltar-analise`).then((r) => r.data)
+}

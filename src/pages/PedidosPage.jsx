@@ -65,20 +65,20 @@ export default function PedidosPage() {
     <>
       <div className="cabecalho-pagina">
         <div>
-          <h2>Pedidos de cadastro</h2>
+          <h2>Cadastro de produtos</h2>
           <p>{admin
             ? 'Cada pedido reúne os produtos que o fornecedor enviou de uma vez.'
             : 'Monte um pedido com todos os produtos e envie de uma vez só.'}</p>
         </div>
         {!admin && (
           <button type="button" className="btn-primario" onClick={iniciarPedido} disabled={abrindo}>
-            {abrindo ? 'Abrindo...' : 'Iniciar pedido'}
+            {abrindo ? 'Abrindo...' : 'Iniciar cadastro de produtos'}
           </button>
         )}
         {admin && (
           <button type="button" className="btn-secundario" onClick={iniciarPedido} disabled={abrindo}
                   title="Abre um pedido para o fornecedor selecionado no filtro">
-            Iniciar pedido para o fornecedor filtrado
+            Iniciar cadastro de produtos para o fornecedor filtrado
           </button>
         )}
       </div>
@@ -127,7 +127,7 @@ export default function PedidosPage() {
             {carregando && <tr><td colSpan={admin ? 8 : 7} className="vazio">Carregando...</td></tr>}
             {!carregando && dados.conteudo.length === 0 && (
               <tr><td colSpan={admin ? 8 : 7} className="vazio">
-                {admin ? 'Nenhum pedido recebido.' : 'Você ainda não tem pedidos. Clique em "Iniciar pedido".'}
+                {admin ? 'Nenhum pedido recebido.' : 'Você ainda não tem pedidos. Clique em "Iniciar cadastro de produtos".'}
               </td></tr>
             )}
             {!carregando && dados.conteudo.map((p) => (

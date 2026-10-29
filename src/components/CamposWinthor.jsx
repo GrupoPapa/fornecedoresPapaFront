@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import Campo from './Campo'
 
 const SIM_NAO = [['S', 'Sim'], ['N', 'Não']]
@@ -19,18 +20,30 @@ function Bloco({ titulo, children }) {
   )
 }
 
+/** Todos os campos obrigatorios do WinThor, na ordem da tela. */
+const CAMPOS_OBRIGATORIOS = [
+  'descricao', 'codMarca', 'codEpto', 'codSec', 'codFab', 'classificacaoFiscal', 'codNcmEx',
+  'embalagem', 'unidade', 'qtUnit', 'unidadeMaster', 'qtUnitCx', 'multiplo',
+  'pesoLiq', 'pesoBruto', 'codAuxiliar', 'gtinCodAuxiliar',
+  'sugVenda', 'pComExt1', 'pComInt1', 'pComRep1',
+  'revenda', 'temRepos', 'cestaBasicaLegis', 'aceitaVendaFracao',
+  'tipoCargaProduto', 'localSeparacao', 'naturezaProduto',
+  'enviaInfTecnicaNfe', 'enviaEcommerce', 'usaWms'
+]
+
+const vazio = (v) => v === null || v === undefined || String(v).trim() === ''
+
 /**
- * Cor de fundo do campo:
- *   vazio         -> avermelhado (falta preencher)
- *   preenchido    -> normal
+ * O fundo avermelhado marca TODOS os campos do WinThor e continua ali mesmo
+ * depois de preenchidos - e o lembrete de que cada um precisa ser conferido
+ * antes de gravar no ERP.
  */
-function classeCampo(campo, valor) {
-  const vazio = valor === null || valor === undefined || String(valor).trim() === ''
-  return vazio ? 'campo-pendente' : undefined
+function classeCampo() {
+  return 'campo-pendente'
 }
 
 function Lista({ campo, label, itens, valor, aoAlterar, erro, ajuda, desabilitado }) {
-  const classe = classeCampo(campo, valor)
+  const classe = classeCampo()
   if (!itens || itens.length === 0) {
     return (
       <Campo label={label} obrigatorio erro={erro}
@@ -54,7 +67,7 @@ function Lista({ campo, label, itens, valor, aoAlterar, erro, ajuda, desabilitad
 function Opcoes({ campo, label, opcoes, valor, aoAlterar, erro, ajuda, desabilitado }) {
   return (
     <Campo label={label} obrigatorio erro={erro} ajuda={ajuda}>
-      <select value={valor ?? ''} disabled={desabilitado} className={classeCampo(campo, valor)}
+      <select value={valor ?? ''} disabled={desabilitado} className={classeCampo()}
               onChange={(e) => aoAlterar(campo, e.target.value)}>
         <option value="">Selecione...</option>
         {opcoes.map(([v, r]) => <option key={v} value={v}>{r}</option>)}
@@ -64,7 +77,7 @@ function Opcoes({ campo, label, opcoes, valor, aoAlterar, erro, ajuda, desabilit
 }
 
 function Texto({ campo, label, valor, aoAlterar, erro, ajuda, max, tipo, passo, desabilitado }) {
-  const classe = [classeCampo(campo, valor), erro ? 'invalido' : null].filter(Boolean).join(' ')
+  const classe = [classeCampo(), erro ? 'invalido' : null].filter(Boolean).join(' ')
   return (
     <Campo label={label} obrigatorio erro={erro} ajuda={ajuda}>
       <input type={tipo || 'text'} step={passo} maxLength={max} value={valor ?? ''}
@@ -77,9 +90,15 @@ function Texto({ campo, label, valor, aoAlterar, erro, ajuda, max, tipo, passo, 
 export default function CamposWinthor({
   form, erros = {}, aoAlterar, marcas, departamentos, secoes, somenteLeitura
 }) {
+  // o bloco abre travado: os valores ja vem do que o fornecedor mandou e so
+  // sao alterados depois de clicar em "Editar dados"
+  const [editando, setEditando] = useState(false)
+  const travado = somenteLeitura || !editando
+  const faltam = CAMPOS_OBRIGATORIOS.filter((c) => vazio(form[c])).length
+
   const p = (campo, extras = {}) => ({
     campo, valor: form[campo], aoAlterar, erro: erros[campo],
-    desabilitado: somenteLeitura, ...extras
+    desabilitado: travado, ...extras
   })
 
   return (
@@ -87,21 +106,37 @@ export default function CamposWinthor({
       <div className="cabecalho-bloco">
         <h3>Dados do WinThor</h3>
         <span className="legenda-origem">
-          <b className="amostra pendente" /> falta preencher
+          <b className="amostra pendente" />
+          {faltam > 0
+            ? `${faltam} campo(s) ainda em branco`
+            : 'todos preenchidos — confira antes de gravar'}
+          {!somenteLeitura && (
+            <button type="button" className="btn-secundario btn-pequeno"
+                    style={{ marginLeft: 10 }}
+                    onClick={() => setEditando((v) => !v)}>
+              {editando ? 'Concluir edição' : 'Editar dados'}
+            </button>
+          )}
         </span>
       </div>
+      {!somenteLeitura && !editando && (
+        <div className="aviso info" style={{ marginTop: 4 }}>
+          Os campos vieram preenchidos com o que o fornecedor enviou e com os padrões da casa.
+          Clique em <strong>Editar dados</strong> para alterar qualquer um deles.
+        </div>
+      )}
 
       <Bloco titulo="Identificação">
         <Texto {...p('descricao', { label: 'Descrição no WinThor', max: 40,
                                     ajuda: 'Máximo de 40 caracteres (limite do WinThor).' })} />
         <div className="grade">
           <Lista campo="codMarca" label="Marca" itens={marcas} valor={form.codMarca}
-                 aoAlterar={aoAlterar} erro={erros.codMarca} desabilitado={somenteLeitura} />
+                 aoAlterar={aoAlterar} erro={erros.codMarca} desabilitado={travado} />
           <Lista campo="codEpto" label="Departamento" itens={departamentos} valor={form.codEpto}
                  aoAlterar={(c, v) => { aoAlterar('codEpto', v); aoAlterar('codSec', '') }}
-                 erro={erros.codEpto} desabilitado={somenteLeitura} />
+                 erro={erros.codEpto} desabilitado={travado} />
           <Lista campo="codSec" label="Seção" itens={secoes} valor={form.codSec}
-                 aoAlterar={aoAlterar} erro={erros.codSec} desabilitado={somenteLeitura}
+                 aoAlterar={aoAlterar} erro={erros.codSec} desabilitado={travado}
                  ajuda={form.codEpto ? undefined : 'Escolha o departamento primeiro.'} />
         </div>
         <div className="grade">
