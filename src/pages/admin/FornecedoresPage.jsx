@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { erpApi, fornecedoresApi } from '../../api/servicos'
+import { comprasApi, erpApi, fornecedoresApi } from '../../api/servicos'
 import { errosPorCampo, mensagemErro } from '../../api/http'
 import { formatarCnpj, ROTULO_TIPO_FORNECEDOR, somenteDigitos } from '../../utils/format'
 import Campo from '../../components/Campo'
@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import Paginacao from '../../components/Paginacao'
 
 const VAZIO = { cnpj: '', razaoSocial: '', nomeFantasia: '', email: '', telefone: '',
-  codFornecedorErp: '', tipo: 'GERAL', ativo: true }
+  codFornecedorErp: '', tipo: 'GERAL', ativo: true, codFilialCompra: '' }
 
 export default function FornecedoresPage() {
   const [dados, setDados] = useState({ conteudo: [], pagina: 0, totalPaginas: 0, totalElementos: 0 })
@@ -18,6 +18,11 @@ export default function FornecedoresPage() {
   const [mensagem, setMensagem] = useState('')
   const [edicao, setEdicao] = useState(null)
   const [erros, setErros] = useState({})
+  const [filiais, setFiliais] = useState([])
+
+  useEffect(() => {
+    comprasApi.filiais().then(setFiliais).catch(() => setFiliais([]))
+  }, [])
 
   // importacao do WinThor
   const [importar, setImportar] = useState(null)
@@ -44,7 +49,8 @@ export default function FornecedoresPage() {
     const dadosEnvio = {
       ...edicao,
       cnpj: somenteDigitos(edicao.cnpj),
-      codFornecedorErp: edicao.codFornecedorErp === '' ? null : Number(edicao.codFornecedorErp)
+      codFornecedorErp: edicao.codFornecedorErp === '' ? null : Number(edicao.codFornecedorErp),
+      codFilialCompra: edicao.codFilialCompra?.trim() || null
     }
     try {
       if (edicao.id) {
@@ -125,26 +131,27 @@ export default function FornecedoresPage() {
         <table>
           <thead>
             <tr>
-              <th>Cód. WinThor</th><th>CNPJ</th><th>Razão social</th><th>Tipo</th>
+              <th>Cód. WinThor</th><th>CNPJ</th><th>Razão social</th><th>Filial compra</th><th>Tipo</th>
               <th>E-mail</th><th>Telefone</th><th>Situação</th><th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={8} className="vazio">Carregando...</td></tr>}
+            {carregando && <tr><td colSpan={9} className="vazio">Carregando...</td></tr>}
             {!carregando && dados.conteudo.length === 0 &&
-              <tr><td colSpan={8} className="vazio">Nenhum fornecedor cadastrado.</td></tr>}
+              <tr><td colSpan={9} className="vazio">Nenhum fornecedor cadastrado.</td></tr>}
             {!carregando && dados.conteudo.map((f) => (
               <tr key={f.id}>
                 <td>{f.codFornecedorErp || '-'}</td>
                 <td>{formatarCnpj(f.cnpj)}</td>
                 <td>{f.razaoSocial}</td>
+                <td>{f.codFilialCompra || '-'}</td>
                 <td>{ROTULO_TIPO_FORNECEDOR[f.tipo] || 'Geral'}</td>
                 <td>{f.email || '-'}</td>
                 <td>{f.telefone || '-'}</td>
                 <td>{f.ativo ? 'Ativo' : 'Inativo'}</td>
                 <td className="acoes">
                   <button type="button" className="btn-secundario btn-pequeno"
-                          onClick={() => { setEdicao({ ...f, codFornecedorErp: f.codFornecedorErp ?? '' }); setErros({}) }}>
+                          onClick={() => { setEdicao({ ...f, codFornecedorErp: f.codFornecedorErp ?? '', codFilialCompra: f.codFilialCompra ?? '' }); setErros({}) }}>
                     Editar
                   </button>
                 </td>
@@ -244,6 +251,17 @@ export default function FornecedoresPage() {
               <Campo label="E-mail" erro={erros.email}>
                 <input type="email" value={edicao.email || ''} maxLength={150}
                        onChange={(e) => setEdicao({ ...edicao, email: e.target.value })} />
+              </Campo>
+              <Campo label="Filial de compra" erro={erros.codFilialCompra}
+                     ajuda="O pedido de compra deste fornecedor já nasce com esta filial e ele não altera. Sem filial, ele escolhe.">
+                <select value={edicao.codFilialCompra || ''}
+                        onChange={(e) => setEdicao({ ...edicao, codFilialCompra: e.target.value })}>
+                  <option value="">Sem filial fixa (fornecedor escolhe)</option>
+                  {filiais.map((f) => <option key={f.codigo} value={f.codigo}>{f.codigo} - {f.nome}</option>)}
+                  {edicao.codFilialCompra && !filiais.some((f) => f.codigo === edicao.codFilialCompra) && (
+                    <option value={edicao.codFilialCompra}>{edicao.codFilialCompra}</option>
+                  )}
+                </select>
               </Campo>
               <Campo label="Telefone" erro={erros.telefone}>
                 <input value={edicao.telefone || ''} maxLength={20}

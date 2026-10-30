@@ -49,6 +49,7 @@ const ROTULO_CAMPO = {
   nome: 'Nome',
   perfil: 'Perfil',
   fornecedorId: 'Fornecedor',
+  codFilialCompra: 'Filial de compra',
   senhaProvisoria: 'Senha provisória',
   novaSenha: 'Nova senha',
   senhaAtual: 'Senha atual',

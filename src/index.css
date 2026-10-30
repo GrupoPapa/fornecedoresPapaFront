@@ -132,6 +132,7 @@ td.acoes { display: flex; gap: 6px; }
 .etiqueta.REPROVADO{ background: #fdecea; color: var(--cor-erro); }
 .etiqueta.DIVERGENCIA { background: #fff4e5; color: #9a6700; }
 .etiqueta.EM_ANALISE  { background: #e5f0fb; color: var(--cor-info); }
+.etiqueta.REVISAO     { background: #fff4e5; color: #9a6700; }
 .etiqueta.CANCELADO   { background: #eef1f4; color: #6b7480; text-decoration: line-through; }
 
 /* ------------------------------------------------------------------ avisos */

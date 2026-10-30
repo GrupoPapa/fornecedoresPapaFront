@@ -82,7 +82,8 @@ export const ROTULO_STATUS_COMPRA = {
   RASCUNHO: 'Em digitação',
   DIVERGENCIA: 'Divergência de cadastro',
   EM_ANALISE: 'Em análise fiscal',
-  REPROVADO: 'Devolvido para reavaliação',
+  REVISAO: 'Devolvido para revisão',
+  REPROVADO: 'Reprovado',
   APROVADO: 'Aprovado',
   CANCELADO: 'Cancelado'
 }

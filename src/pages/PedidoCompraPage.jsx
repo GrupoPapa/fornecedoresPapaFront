@@ -20,7 +20,8 @@ const ROTULO_EVENTO = {
   CADASTRO_REANALISADO: 'Cadastro reanalisado',
   DIVERGENCIA_LIBERADA: 'Divergência liberada pelo fiscal',
   APROVACAO: 'Aprovado',
-  REPROVACAO: 'Devolvido para reavaliação',
+  REVISAO: 'Devolvido para revisão',
+  REPROVACAO: 'Reprovado',
   SUGESTAO_GERADA: 'Sugestão gerada no WinThor',
   ERRO_SUGESTAO: 'Erro ao gerar a sugestão',
   REABERTURA: 'Voltou para análise',
@@ -87,6 +88,7 @@ export default function PedidoCompraPage() {
   const editavel = novo || !!pedido?.editavel
   const fornecedorId = admin ? (pedido?.fornecedorId || fornecedorParam) : null
   const status = pedido?.status
+  const filialFixa = !!(pedido?.filialFixa || catalogo.codFilialFornecedor)
 
   // ------------------------------------------------------------ carga
   const aplicarPedido = useCallback((p) => {
@@ -131,7 +133,10 @@ export default function PedidoCompraPage() {
   const carregarCatalogo = useCallback(async () => {
     if (admin && !fornecedorId) return
     try {
-      setCatalogo(await comprasApi.catalogo(fornecedorId))
+      const c = await comprasApi.catalogo(fornecedorId)
+      setCatalogo(c)
+      // filial de compra definida no cadastro do fornecedor: o pedido ja nasce com ela
+      if (c.codFilialFornecedor) setForm((f) => ({ ...f, codFilial: c.codFilialFornecedor }))
     } catch (err) {
       setCatalogo({ produtos: [], avisoWinthor: mensagemErro(err, 'Não foi possível carregar os produtos.') })
     }
@@ -333,10 +338,16 @@ export default function PedidoCompraPage() {
       {erro && <div className="aviso erro">{erro}</div>}
       {mensagem && <div className="aviso sucesso">{mensagem}</div>}
 
-      {status === 'REPROVADO' && pedido.parecer && (
+      {status === 'REVISAO' && pedido.parecer && (
         <div className="aviso atencao">
-          <strong>Devolvido pelo setor fiscal:</strong> {pedido.parecer}
-          {!admin && <><br />Ajuste o que for preciso e clique em <strong>Reenviar para análise</strong>.</>}
+          <strong>Devolvido pelo setor fiscal para revisão:</strong> {pedido.parecer}
+          {!admin && <><br />Faça as correções e clique em <strong>Reenviar para análise</strong>.</>}
+        </div>
+      )}
+      {status === 'REPROVADO' && (
+        <div className="aviso erro">
+          <strong>Pedido reprovado pelo setor fiscal</strong>{pedido.parecer && <>: {pedido.parecer}</>}
+          {!admin && <><br />Este pedido foi encerrado. Se precisar, inicie um novo pedido.</>}
         </div>
       )}
       {status === 'DIVERGENCIA' && (
@@ -379,8 +390,10 @@ export default function PedidoCompraPage() {
         <h3>Dados do pedido</h3>
         {editavel ? (
           <div className="grade">
-            <Campo label="Filial de entrega" obrigatorio>
-              <select value={form.codFilial} onChange={(e) => alterarForm('codFilial', e.target.value)}>
+            <Campo label="Filial de entrega" obrigatorio
+                   ajuda={filialFixa ? 'Filial de compra definida para o seu cadastro.' : undefined}>
+              <select value={form.codFilial} disabled={filialFixa}
+                      onChange={(e) => alterarForm('codFilial', e.target.value)}>
                 <option value="">Selecione</option>
                 {filiais.map((f) => <option key={f.codigo} value={f.codigo}>{f.codigo} - {f.nome}</option>)}
               </select>
@@ -662,7 +675,7 @@ export default function PedidoCompraPage() {
             </button>
             <button type="button" className="btn-primario" disabled={salvando || itens.length === 0}
                     onClick={() => setModal({ tipo: 'enviar' })}>
-              {status === 'REPROVADO' ? 'Reenviar para análise' : 'Enviar para análise'}
+              {status === 'REVISAO' ? 'Reenviar para análise' : 'Enviar para análise'}
             </button>
           </>
         )}
@@ -670,7 +683,7 @@ export default function PedidoCompraPage() {
         {admin && status === 'DIVERGENCIA' && (
           <>
             <button type="button" className="btn-perigo" disabled={salvando}
-                    onClick={() => setModal({ tipo: 'reprovar', parecer: '' })}>Devolver ao fornecedor</button>
+                    onClick={() => setModal({ tipo: 'revisar', parecer: '' })}>Revisar</button>
             <button type="button" className="btn-primario" disabled={salvando}
                     onClick={() => setModal({ tipo: 'divergencia', parecer: '', forcar: false })}>
               Concluir reanálise do cadastro
@@ -682,6 +695,8 @@ export default function PedidoCompraPage() {
           <>
             <button type="button" className="btn-perigo" disabled={salvando}
                     onClick={() => setModal({ tipo: 'reprovar', parecer: '' })}>Reprovar</button>
+            <button type="button" className="btn-secundario" disabled={salvando}
+                    onClick={() => setModal({ tipo: 'revisar', parecer: '' })}>Revisar</button>
             <button type="button" className="btn-sucesso" disabled={salvando}
                     onClick={() => setModal({ tipo: 'aprovar', parecer: '', codFilial: pedido.codFilial || '' })}>
               Aprovar pedido
@@ -740,18 +755,37 @@ export default function PedidoCompraPage() {
         </Modal>
       )}
 
+      {modal?.tipo === 'revisar' && (
+        <Modal titulo="Devolver para revisão" aoFechar={() => setModal(null)}
+               rodape={<>
+                 <button type="button" className="btn-secundario" onClick={() => setModal(null)}>Voltar</button>
+                 <button type="button" className="btn-primario" disabled={salvando || !modal.parecer.trim()}
+                         onClick={() => acao(() => comprasApi.revisar(pedido.id, modal.parecer),
+                           'Pedido devolvido ao fornecedor para revisão.')}>
+                   Devolver para revisão
+                 </button>
+               </>}>
+          <p>O fornecedor recebe o pedido de volta com o motivo, faz as correções e reenvia para análise.</p>
+          <Campo label="Motivo da revisão" obrigatorio
+                 ajuda="Ex.: preço do item 3 acima da última compra; quantidade fora do múltiplo da caixa.">
+            <textarea maxLength={500} value={modal.parecer} autoFocus
+                      onChange={(e) => setModal((m) => ({ ...m, parecer: e.target.value }))} />
+          </Campo>
+        </Modal>
+      )}
+
       {modal?.tipo === 'reprovar' && (
-        <Modal titulo="Devolver ao fornecedor" aoFechar={() => setModal(null)}
+        <Modal titulo="Reprovar pedido" aoFechar={() => setModal(null)}
                rodape={<>
                  <button type="button" className="btn-secundario" onClick={() => setModal(null)}>Voltar</button>
                  <button type="button" className="btn-perigo" disabled={salvando || !modal.parecer.trim()}
-                         onClick={() => acao(() => comprasApi.reprovar(pedido.id, modal.parecer),
-                           'Pedido devolvido ao fornecedor para reavaliação.')}>
-                   Devolver
+                         onClick={() => acao(() => comprasApi.reprovar(pedido.id, modal.parecer), 'Pedido reprovado.')}>
+                   Reprovar
                  </button>
                </>}>
-          <Campo label="O que o fornecedor precisa rever?" obrigatorio
-                 ajuda="Ex.: preço do item 3 acima da última compra; quantidade fora do múltiplo da caixa.">
+          <div className="aviso atencao">A reprovação encerra o pedido: o fornecedor vê o motivo, mas não consegue
+            corrigir nem reenviar. Para pedir correção, use <strong>Revisar</strong>.</div>
+          <Campo label="Motivo da reprovação" obrigatorio>
             <textarea maxLength={500} value={modal.parecer} autoFocus
                       onChange={(e) => setModal((m) => ({ ...m, parecer: e.target.value }))} />
           </Campo>
