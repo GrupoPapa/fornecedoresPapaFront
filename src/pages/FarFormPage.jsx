@@ -119,6 +119,8 @@ export default function FarFormPage() {
   const [novoAnexo, setNovoAnexo] = useState({ tipo: 'OUTRO', arquivo: null })
   // FAR nova: os anexos ficam na fila e sobem logo depois de registrar
   const [pendentes, setPendentes] = useState([])
+  // conferencia da NF de compra no WinThor: null | { carregando } | resposta da API
+  const [verificacaoNota, setVerificacaoNota] = useState(null)
 
   const editavel = novo || !!far?.editavel
 
@@ -215,6 +217,32 @@ export default function FarFormPage() {
     setForm((f) => ({ ...f, itens: [...f.itens, itemVazio()] }))
     setErros((e) => ({ ...e, itensGeral: undefined }))
   }
+
+  const verificarNota = useCallback(async (numero) => {
+    const n = String(numero || '').trim()
+    if (!n) { setVerificacaoNota(null); return }
+    if (admin && !fornecedorDoCatalogo) return
+    setVerificacaoNota({ numero: n, carregando: true })
+    try {
+      setVerificacaoNota(await farApi.verificarNota(n, fornecedorDoCatalogo || undefined))
+    } catch (err) {
+      setVerificacaoNota({ numero: n, consultado: false, encontrada: false,
+        mensagem: mensagemErro(err, 'Não foi possível conferir a nota agora.') })
+    }
+  }, [admin, fornecedorDoCatalogo])
+
+  // ao abrir uma FAR que ja tem nota, confere de novo (mostra data, filial e produtos da NF)
+  useEffect(() => {
+    if (far?.numeroNota) verificarNota(far.numeroNota)
+  }, [far?.id, far?.numeroNota, verificarNota])
+
+  // produtos da FAR que nao aparecem na NF de compra (so da para comparar pelo CODPROD do WinThor)
+  const produtosForaDaNota = useMemo(() => {
+    if (!verificacaoNota?.encontrada || !verificacaoNota.produtos?.length) return []
+    const naNota = new Set(verificacaoNota.produtos.map(String))
+    return form.itens.map((i) => i.codigoProduto.trim())
+      .filter((c) => /^\d+$/.test(c) && !naNota.has(String(Number(c))))
+  }, [verificacaoNota, form.itens])
 
   function removerItem(indice) {
     setForm((f) => ({ ...f, itens: f.itens.filter((_, n) => n !== indice) }))
@@ -386,7 +414,15 @@ export default function FarFormPage() {
         setModal(null)
         return
       } else if (modal.tipo === 'baixa') {
-        setFar(await farApi.vincularBaixa(id, { referencia: modal.referencia.trim() || null, observacao: modal.observacao.trim() || null }))
+        if (!modal.tipoNf || !modal.referencia.trim()) {
+          setModal((m) => ({ ...m, erro: !modal.tipoNf
+            ? 'Informe se a NF é de perda ou de devolução ao fornecedor.'
+            : 'Informe a NF da baixa fiscal.' }))
+          return
+        }
+        setFar(await farApi.vincularBaixa(id, {
+          tipo: modal.tipoNf, referencia: modal.referencia.trim(), observacao: modal.observacao.trim() || null
+        }))
         setMensagem('Vínculo com a baixa fiscal registrado. A FAR ficou travada para o fornecedor.')
       } else if (modal.tipo === 'desfazer') {
         setFar(await farApi.desfazerBaixa(id, modal.motivo.trim() || null))
@@ -531,10 +567,27 @@ export default function FarFormPage() {
                      className={erros.numeroFar ? 'invalido' : undefined}
                      onChange={(e) => alterar('numeroFar', e.target.value)} />
             </Campo>
-            <Campo label="Nº da nota fiscal" erro={erros.numeroNota}>
-              <input value={form.numeroNota} maxLength={30} inputMode="numeric" disabled={!editavel}
-                     className={erros.numeroNota ? 'invalido' : undefined}
-                     onChange={(e) => alterar('numeroNota', e.target.value)} />
+            <Campo label="Nº da NF de compra" erro={erros.numeroNota}
+                   ajuda={!verificacaoNota ? 'Conferida no WinThor ao sair do campo.' : undefined}>
+              <input value={form.numeroNota} maxLength={15} inputMode="numeric" disabled={!editavel}
+                     className={erros.numeroNota || (verificacaoNota?.consultado && !verificacaoNota.encontrada && !verificacaoNota.carregando)
+                       ? 'invalido' : undefined}
+                     onChange={(e) => {
+                       alterar('numeroNota', e.target.value.replace(/\D/g, ''))
+                       setVerificacaoNota(null)
+                     }}
+                     onBlur={(e) => verificarNota(e.target.value)} />
+              {verificacaoNota && (
+                <span className={`verificacao-nota ${verificacaoNota.carregando ? 'nf-consultando'
+                  : verificacaoNota.encontrada ? 'nf-ok' : verificacaoNota.consultado ? 'nf-erro' : 'nf-aviso'}`}>
+                  {verificacaoNota.carregando ? 'Conferindo no WinThor...' : verificacaoNota.mensagem}
+                </span>
+              )}
+              {produtosForaDaNota.length > 0 && (
+                <span className="verificacao-nota nf-aviso">
+                  Produto(s) {produtosForaDaNota.join(', ')} não constam nesta NF.
+                </span>
+              )}
             </Campo>
             <Campo label="Nº do pedido" erro={erros.numeroPedido}>
               <input value={form.numeroPedido} maxLength={30} inputMode="numeric" disabled={!editavel}
@@ -677,7 +730,7 @@ export default function FarFormPage() {
                 ) : (
                   <button type="button" className="btn-sucesso btn-pequeno" disabled={salvando || !far.numeroFar}
                           title={!far.numeroFar ? 'A FAR precisa ter número para ser vinculada' : undefined}
-                          onClick={() => setModal({ tipo: 'baixa', referencia: '', observacao: '' })}>
+                          onClick={() => setModal({ tipo: 'baixa', tipoNf: '', referencia: '', observacao: '' })}>
                     Registrar vínculo
                   </button>
                 )}
@@ -687,7 +740,9 @@ export default function FarFormPage() {
           {far.baixaFiscal ? (
             <div className="resumo-pedido">
               <div><span>Situação</span><strong style={{ color: 'var(--cor-sucesso)' }}>Vinculada</strong></div>
-              <div><span>Referência</span><strong>{far.baixaFiscalReferencia || '-'}</strong></div>
+              <div><span>Tipo da NF</span><strong>{far.baixaFiscalTipoRotulo
+                ? (far.baixaFiscalTipo === 'DEVOLUCAO' ? 'Devolução ao fornecedor' : 'NF de perda') : '-'}</strong></div>
+              <div><span>NF baixa fiscal</span><strong>{far.baixaFiscalReferencia || '-'}</strong></div>
               <div><span>Registrado em</span><strong>{formatarDataHora(far.dataBaixaFiscal)}</strong></div>
               <div><span>Por</span><strong>{far.usuarioBaixa || '-'}</strong></div>
               {far.baixaFiscalObservacao && (
@@ -762,9 +817,20 @@ export default function FarFormPage() {
               <p style={{ margin: 0 }}>
                 Confirma que a FAR <strong>{far?.numeroFar}</strong> foi vinculada ao processo de baixa fiscal da avaria no sistema?
               </p>
-              <Campo label="Referência no sistema" ajuda="Opcional: nº da nota, do lançamento ou do processo.">
-                <input value={modal.referencia} maxLength={100} autoFocus
-                       onChange={(e) => setModal({ ...modal, referencia: e.target.value })} />
+              <Campo label="A NF é de" obrigatorio>
+                <div className="opcoes-radio">
+                  {[['PERDA', 'NF de perda'], ['DEVOLUCAO', 'Devolução ao fornecedor']].map(([valor, rotulo]) => (
+                    <label key={valor} className={modal.tipoNf === valor ? 'marcada' : undefined}>
+                      <input type="radio" name="tipoNf" value={valor} checked={modal.tipoNf === valor}
+                             onChange={() => setModal({ ...modal, tipoNf: valor, erro: undefined })} />
+                      {rotulo}
+                    </label>
+                  ))}
+                </div>
+              </Campo>
+              <Campo label="NF baixa fiscal" obrigatorio ajuda="Número da nota fiscal que deu baixa na avaria.">
+                <input value={modal.referencia} maxLength={100} inputMode="numeric"
+                       onChange={(e) => setModal({ ...modal, referencia: e.target.value, erro: undefined })} />
               </Campo>
               <Campo label="Observação">
                 <textarea value={modal.observacao} maxLength={500}
