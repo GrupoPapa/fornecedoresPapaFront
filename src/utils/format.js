@@ -128,3 +128,19 @@ export function hojeIso() {
   const p = (n) => String(n).padStart(2, '0')
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}`
 }
+
+export const ROTULO_STATUS_FAR = {
+  EM_ANALISE: 'Em análise',
+  PENDENTE_INFORMACOES: 'Pendente de informações',
+  AGUARDANDO_DESCARTE: 'Aguardando descarte',
+  FINALIZADO_APROVADO: 'Processo finalizado aprovado',
+  FINALIZADO_REPROVADO: 'Processo finalizado reprovado',
+  OUTROS: 'Outros'
+}
+
+export function formatarTamanho(bytes) {
+  if (!bytes && bytes !== 0) return '-'
+  if (bytes < 1024) return `${bytes} B`
+  if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
+  return `${(bytes / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`
+}

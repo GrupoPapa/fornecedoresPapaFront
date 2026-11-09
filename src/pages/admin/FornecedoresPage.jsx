@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import Paginacao from '../../components/Paginacao'
 
 const VAZIO = { cnpj: '', razaoSocial: '', nomeFantasia: '', email: '', telefone: '',
-  codFornecedorErp: '', tipo: 'GERAL', ativo: true, codFilialCompra: '' }
+  codFornecedorErp: '', tipo: 'GERAL', ativo: true, codFilialCompra: '', habilitaFar: false }
 
 export default function FornecedoresPage() {
   const [dados, setDados] = useState({ conteudo: [], pagina: 0, totalPaginas: 0, totalElementos: 0 })
@@ -132,13 +132,13 @@ export default function FornecedoresPage() {
           <thead>
             <tr>
               <th>Cód. WinThor</th><th>CNPJ</th><th>Razão social</th><th>Filial compra</th><th>Tipo</th>
-              <th>E-mail</th><th>Telefone</th><th>Situação</th><th>Ações</th>
+              <th>E-mail</th><th>Telefone</th><th>FAR</th><th>Situação</th><th>Ações</th>
             </tr>
           </thead>
           <tbody>
-            {carregando && <tr><td colSpan={9} className="vazio">Carregando...</td></tr>}
+            {carregando && <tr><td colSpan={10} className="vazio">Carregando...</td></tr>}
             {!carregando && dados.conteudo.length === 0 &&
-              <tr><td colSpan={9} className="vazio">Nenhum fornecedor cadastrado.</td></tr>}
+              <tr><td colSpan={10} className="vazio">Nenhum fornecedor cadastrado.</td></tr>}
             {!carregando && dados.conteudo.map((f) => (
               <tr key={f.id}>
                 <td>{f.codFornecedorErp || '-'}</td>
@@ -148,6 +148,7 @@ export default function FornecedoresPage() {
                 <td>{ROTULO_TIPO_FORNECEDOR[f.tipo] || 'Geral'}</td>
                 <td>{f.email || '-'}</td>
                 <td>{f.telefone || '-'}</td>
+                <td>{f.habilitaFar ? <span className="etiqueta BAIXA_OK">Liberado</span> : '-'}</td>
                 <td>{f.ativo ? 'Ativo' : 'Inativo'}</td>
                 <td className="acoes">
                   <button type="button" className="btn-secundario btn-pequeno"
@@ -272,6 +273,14 @@ export default function FornecedoresPage() {
                         onChange={(e) => setEdicao({ ...edicao, ativo: e.target.value === '1' })}>
                   <option value="1">Ativo</option>
                   <option value="0">Inativo</option>
+                </select>
+              </Campo>
+              <Campo label="Controle de avarias (FAR)"
+                     ajuda="Liberado: o fornecedor vê o menu FAR e registra as avarias dele.">
+                <select value={edicao.habilitaFar ? '1' : '0'}
+                        onChange={(e) => setEdicao({ ...edicao, habilitaFar: e.target.value === '1' })}>
+                  <option value="0">Não liberado</option>
+                  <option value="1">Liberado</option>
                 </select>
               </Campo>
             </div>

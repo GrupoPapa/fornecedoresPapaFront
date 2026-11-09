@@ -135,3 +135,41 @@ export const comprasApi = {
   voltarAnalise: (id) =>
     http.post(`/api/admin/pedidos-compra/${id}/voltar-analise`).then((r) => r.data)
 }
+
+/** Monta o corpo multipart da FAR: 'dados' em JSON + comprovante opcional. */
+function corpoFar(dados, comprovante) {
+  const corpo = new FormData()
+  corpo.append('dados', new Blob([JSON.stringify(dados)], { type: 'application/json' }))
+  if (comprovante) corpo.append('comprovante', comprovante)
+  return corpo
+}
+
+export const farApi = {
+  listar: (params) => http.get('/api/far', { params }).then((r) => r.data),
+  motivos: () => http.get('/api/far/motivos').then((r) => r.data),
+  buscar: (id) => http.get(`/api/far/${id}`).then((r) => r.data),
+  criar: (dados, comprovante, fornecedorId) =>
+    http.post('/api/far', corpoFar(dados, comprovante), { params: fornecedorId ? { fornecedorId } : {} })
+      .then((r) => r.data),
+  atualizar: (id, dados, comprovante) =>
+    http.put(`/api/far/${id}`, corpoFar(dados, comprovante)).then((r) => r.data),
+  historico: (id) => http.get(`/api/far/${id}/historico`).then((r) => r.data),
+  anexos: (id) => http.get(`/api/far/${id}/anexos`).then((r) => r.data),
+  anexar: (id, arquivo, tipo) => {
+    const corpo = new FormData()
+    corpo.append('arquivo', arquivo)
+    return http.post(`/api/far/${id}/anexos`, corpo, { params: { tipo } }).then((r) => r.data)
+  },
+  conteudoAnexo: (id, anexoId) =>
+    http.get(`/api/far/${id}/anexos/${anexoId}`, { responseType: 'blob' }).then((r) => r.data),
+  excluirAnexo: (id, anexoId) => http.delete(`/api/far/${id}/anexos/${anexoId}`),
+  exportar: (params) => http.get('/api/far/exportar', { params, responseType: 'blob' }),
+  // equipe interna
+  fornecedores: () => http.get('/api/admin/far/fornecedores').then((r) => r.data),
+  todosMotivos: () => http.get('/api/admin/far/motivos').then((r) => r.data),
+  criarMotivo: (dados) => http.post('/api/admin/far/motivos', dados).then((r) => r.data),
+  atualizarMotivo: (id, dados) => http.put(`/api/admin/far/motivos/${id}`, dados).then((r) => r.data),
+  vincularBaixa: (id, dados) => http.post(`/api/admin/far/${id}/baixa-fiscal`, dados || {}).then((r) => r.data),
+  desfazerBaixa: (id, motivo) =>
+    http.post(`/api/admin/far/${id}/baixa-fiscal/desfazer`, { motivo }).then((r) => r.data)
+}

@@ -9,6 +9,8 @@ import ProdutosPage from './pages/ProdutosPage'
 import ProdutoFormPage from './pages/ProdutoFormPage'
 import PedidosCompraPage from './pages/PedidosCompraPage'
 import PedidoCompraPage from './pages/PedidoCompraPage'
+import FarListaPage from './pages/FarListaPage'
+import FarFormPage from './pages/FarFormPage'
 import FornecedoresPage from './pages/admin/FornecedoresPage'
 import UsuariosPage from './pages/admin/UsuariosPage'
 
@@ -26,6 +28,9 @@ export default function App() {
         <Route path="/produtos" element={<ProdutosPage />} />
         <Route path="/produtos/novo" element={<ProdutoFormPage />} />
         <Route path="/produtos/:id" element={<ProdutoFormPage />} />
+        <Route path="/far" element={<RotaProtegida somenteFar><FarListaPage /></RotaProtegida>} />
+        <Route path="/far/novo" element={<RotaProtegida somenteFar><FarFormPage /></RotaProtegida>} />
+        <Route path="/far/:id" element={<RotaProtegida somenteFar><FarFormPage /></RotaProtegida>} />
         <Route path="/admin/fornecedores"
                element={<RotaProtegida somenteAdmin><FornecedoresPage /></RotaProtegida>} />
         <Route path="/admin/usuarios"
