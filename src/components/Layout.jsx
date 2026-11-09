@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { NavLink, Outlet } from 'react-router-dom'
 import { authApi } from '../api/servicos'
 import { useAuth } from '../context/AuthContext'
+import { formatarCnpj } from '../utils/format'
 
 export default function Layout() {
   const { usuario, admin, sair, atualizarUsuario } = useAuth()
@@ -18,10 +19,19 @@ export default function Layout() {
       <header className="topo">
         <h1>Portal do Fornecedor</h1>
         <div className="usuario">
-          <span>
-            {usuario?.nome}
-            {usuario?.fornecedorNome ? ` · ${usuario.fornecedorNome}` : ' · Administrador'}
-          </span>
+          <div className="identificacao">
+            <span>
+              {usuario?.nome}
+              {usuario?.fornecedorNome ? ` · ${usuario.fornecedorNome}` : ' · Administrador'}
+            </span>
+            {usuario?.fornecedorNome && (usuario.fornecedorCodErp || usuario.fornecedorCnpj) && (
+              <span className="dados-fornecedor">
+                {usuario.fornecedorCodErp && <>Cód. <strong>{usuario.fornecedorCodErp}</strong></>}
+                {usuario.fornecedorCodErp && usuario.fornecedorCnpj && ' · '}
+                {usuario.fornecedorCnpj && <>CNPJ <strong>{formatarCnpj(usuario.fornecedorCnpj)}</strong></>}
+              </span>
+            )}
+          </div>
           <button type="button" className="sair" onClick={sair}>Sair</button>
         </div>
       </header>
