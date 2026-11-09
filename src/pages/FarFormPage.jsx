@@ -8,8 +8,14 @@ import Campo from '../components/Campo'
 import Modal from '../components/Modal'
 import ProdutoAutocomplete from '../components/ProdutoAutocomplete'
 
+let sequenciaChave = 0
+function itemVazio() {
+  sequenciaChave += 1
+  return { chave: `n${sequenciaChave}`, codigoProduto: '', descricaoProduto: '', quantidade: '', motivoId: '' }
+}
+
 const FORM_VAZIO = {
-  dataVisita: '', codigoProduto: '', qtdProdutos: '', motivoId: '', obsOcorrencia: '',
+  dataVisita: '', itens: [], obsOcorrencia: '',
   dataAberturaFar: '', numeroFar: '', numeroNota: '', numeroPedido: '', status: 'EM_ANALISE', statusOutros: '',
   obsFarFornecedor: '', obsFarEmpresa: ''
 }
@@ -32,9 +38,13 @@ const MAX_ANEXOS = 10
 function formDoServidor(f) {
   return {
     dataVisita: f.dataVisita || '',
-    codigoProduto: f.codigoProduto || '',
-    qtdProdutos: f.qtdProdutos ?? '',
-    motivoId: f.motivoId ? String(f.motivoId) : '',
+    itens: (f.itens || []).map((i) => ({
+      chave: `s${i.id}`,
+      codigoProduto: i.codigoProduto || '',
+      descricaoProduto: i.descricaoProduto || '',
+      quantidade: i.quantidade ?? '',
+      motivoId: i.motivoId ? String(i.motivoId) : ''
+    })),
     obsOcorrencia: f.obsOcorrencia || '',
     dataAberturaFar: f.dataAberturaFar || '',
     numeroFar: f.numeroFar || '',
@@ -53,10 +63,16 @@ function validar(form, comprovantes) {
   const hoje = hojeIso()
   if (!form.dataVisita) e.dataVisita = 'Informe a data da visita.'
   else if (form.dataVisita > hoje) e.dataVisita = 'A data da visita não pode ser futura.'
-  if (!form.codigoProduto.trim()) e.codigoProduto = 'Informe o código do produto.'
-  const qtd = Number(form.qtdProdutos)
-  if (form.qtdProdutos === '' || !Number.isInteger(qtd) || qtd <= 0) e.qtdProdutos = 'Informe uma quantidade inteira maior que zero.'
-  if (!form.motivoId) e.motivoId = 'Selecione o motivo.'
+  if (form.itens.length === 0) e.itensGeral = 'Inclua ao menos um produto.'
+  const errosItens = form.itens.map((i) => {
+    const ei = {}
+    if (!i.codigoProduto.trim()) ei.codigoProduto = 'Informe o código.'
+    const qtd = Number(i.quantidade)
+    if (i.quantidade === '' || !Number.isInteger(qtd) || qtd <= 0) ei.quantidade = 'Quantidade inteira maior que zero.'
+    if (!i.motivoId) ei.motivoId = 'Selecione o motivo.'
+    return ei
+  })
+  if (errosItens.some((ei) => Object.keys(ei).length)) e.itens = errosItens
   if (form.dataAberturaFar) {
     if (form.dataAberturaFar > hoje) e.dataAberturaFar = 'A data de abertura não pode ser futura.'
     else if (form.dataVisita && form.dataAberturaFar < form.dataVisita) e.dataAberturaFar = 'Não pode ser anterior à data da visita.'
@@ -148,7 +164,7 @@ export default function FarFormPage() {
   useEffect(() => {
     if (novo) {
       setFar(null)
-      setForm({ ...FORM_VAZIO, dataVisita: hojeIso() })
+      setForm({ ...FORM_VAZIO, dataVisita: hojeIso(), itens: [itemVazio()] })
       setAnexos([])
       setHistorico([])
       return
@@ -168,13 +184,42 @@ export default function FarFormPage() {
     return () => { ativo = false }
   }, [id, novo, carregarRelacionados])
 
-  // motivo inativo continua aparecendo na FAR que ja o usa
+  // motivo inativo continua aparecendo nos itens da FAR que ja o usam
   const opcoesMotivo = useMemo(() => {
-    if (far?.motivoId && !motivos.some((m) => m.id === far.motivoId)) {
-      return [...motivos, { id: far.motivoId, descricao: `${far.motivoDescricao} (inativo)` }]
-    }
-    return motivos
+    const extras = []
+    ;(far?.itens || []).forEach((i) => {
+      if (!motivos.some((m) => m.id === i.motivoId) && !extras.some((m) => m.id === i.motivoId)) {
+        extras.push({ id: i.motivoId, descricao: `${i.motivoDescricao} (inativo)` })
+      }
+    })
+    return [...motivos, ...extras]
   }, [motivos, far])
+
+  const totalProdutos = form.itens.reduce((soma, i) => soma + (Number(i.quantidade) > 0 ? Number(i.quantidade) : 0), 0)
+
+  function erroItem(indice, campo) {
+    return erros.itens?.[indice]?.[campo] || erros[`itens[${indice}].${campo}`]
+  }
+
+  function alterarItem(indice, mudancas) {
+    setForm((f) => ({ ...f, itens: f.itens.map((i, n) => (n === indice ? { ...i, ...mudancas } : i)) }))
+    setErros((e) => {
+      if (!e.itens?.[indice] && !Object.keys(e).some((k) => k.startsWith(`itens[${indice}]`))) return e
+      const itens = e.itens ? e.itens.map((ei, n) => (n === indice ? {} : ei)) : e.itens
+      return { ...e, itens }
+    })
+    setMensagem('')
+  }
+
+  function incluirItem() {
+    setForm((f) => ({ ...f, itens: [...f.itens, itemVazio()] }))
+    setErros((e) => ({ ...e, itensGeral: undefined }))
+  }
+
+  function removerItem(indice) {
+    setForm((f) => ({ ...f, itens: f.itens.filter((_, n) => n !== indice) }))
+    setErros((e) => ({ ...e, itens: e.itens?.filter((_, n) => n !== indice) }))
+  }
 
   const comprovantesNaFila = novo ? pendentes.filter((p) => p.tipo === 'COMPROVANTE_PAGAMENTO').length : 0
   const qtdComprovantes = (far?.qtdComprovantes || 0) + comprovantesNaFila
@@ -210,9 +255,12 @@ export default function FarFormPage() {
     }
     const dados = {
       dataVisita: form.dataVisita,
-      codigoProduto: form.codigoProduto.trim(),
-      qtdProdutos: Number(form.qtdProdutos),
-      motivoId: Number(form.motivoId),
+      itens: form.itens.map((i) => ({
+        codigoProduto: i.codigoProduto.trim(),
+        descricaoProduto: i.descricaoProduto?.trim() || null,
+        quantidade: Number(i.quantidade),
+        motivoId: Number(i.motivoId)
+      })),
       obsOcorrencia: form.obsOcorrencia.trim() || null,
       dataAberturaFar: form.dataAberturaFar || null,
       numeroFar: form.numeroFar.trim() || null,
@@ -324,6 +372,19 @@ export default function FarFormPage() {
         await farApi.excluirAnexo(id, modal.anexo.id)
         setMensagem('Arquivo excluído.')
         setFar(await farApi.buscar(id))
+      } else if (modal.tipo === 'motivo') {
+        const descricao = modal.descricao.trim()
+        if (!descricao) {
+          setModal((m) => ({ ...m, erro: 'Informe a descrição do motivo.' }))
+          return
+        }
+        const criado = await farApi.criarMotivoFar({ descricao })
+        const lista = await farApi.motivos().catch(() => motivos)
+        setMotivos(lista.some((m) => m.id === criado.id) ? lista : [...lista, criado])
+        alterarItem(modal.indice, { motivoId: String(criado.id) })
+        setMensagem(`Motivo "${criado.descricao}" cadastrado.`)
+        setModal(null)
+        return
       } else if (modal.tipo === 'baixa') {
         setFar(await farApi.vincularBaixa(id, { referencia: modal.referencia.trim() || null, observacao: modal.observacao.trim() || null }))
         setMensagem('Vínculo com a baixa fiscal registrado. A FAR ficou travada para o fornecedor.')
@@ -381,32 +442,71 @@ export default function FarFormPage() {
       <section className="cartao">
         <h3>Ocorrência</h3>
         <div className="formulario">
-          <div className="grade">
+          <div className="grade" style={{ maxWidth: 300 }}>
             <Campo label="Data da visita" obrigatorio erro={erros.dataVisita}>
               <input type="date" value={form.dataVisita} max={hojeIso()} disabled={!editavel}
                      className={erros.dataVisita ? 'invalido' : undefined}
                      onChange={(e) => alterar('dataVisita', e.target.value)} />
             </Campo>
-            <Campo label="Código do produto" obrigatorio erro={erros.codigoProduto}
-                   ajuda={produtos.length
-                     ? 'Pesquise pelo nome ou digite o código. Mais de um produto? Separe por vírgula.'
-                     : 'Código de fábrica ou do WinThor. Mais de um? Separe por vírgula.'}>
-              <ProdutoAutocomplete valor={form.codigoProduto} produtos={produtos} disabled={!editavel}
-                                   invalido={!!erros.codigoProduto}
-                                   aoMudar={(v) => alterar('codigoProduto', v)} />
-            </Campo>
-            <Campo label="Qtd. de produtos" obrigatorio erro={erros.qtdProdutos} ajuda="Quantidade de produtos avariados.">
-              <input type="number" inputMode="numeric" min={1} step={1} value={form.qtdProdutos} disabled={!editavel}
-                     className={erros.qtdProdutos ? 'invalido' : undefined}
-                     onChange={(e) => alterar('qtdProdutos', e.target.value)} />
-            </Campo>
-            <Campo label="Motivo" obrigatorio erro={erros.motivoId}>
-              <select value={form.motivoId} disabled={!editavel} className={erros.motivoId ? 'invalido' : undefined}
-                      onChange={(e) => alterar('motivoId', e.target.value)}>
-                <option value="">Selecione...</option>
-                {opcoesMotivo.map((m) => <option key={m.id} value={m.id}>{m.descricao}</option>)}
-              </select>
-            </Campo>
+          </div>
+
+          <div className="far-itens">
+            <div className="far-itens-cabecalho">
+              <strong>Produtos avariados</strong>
+              <span className="texto-suave">
+                {form.itens.length} produto(s) · total {totalProdutos.toLocaleString('pt-BR')} unidade(s)
+              </span>
+            </div>
+            {erros.itensGeral && <div className="aviso erro">{erros.itensGeral}</div>}
+
+            {form.itens.map((item, n) => (
+              <div className="far-item" key={item.chave}>
+                <span className="far-item-numero">{n + 1}</span>
+                <Campo label="Código do produto" obrigatorio erro={erroItem(n, 'codigoProduto')}
+                       ajuda={item.descricaoProduto
+                         ? undefined
+                         : (produtos.length ? 'Pesquise pelo nome ou digite o código.' : 'Código de fábrica ou do WinThor.')}>
+                  <ProdutoAutocomplete valor={item.codigoProduto} produtos={produtos} disabled={!editavel}
+                                       invalido={!!erroItem(n, 'codigoProduto')}
+                                       aoMudar={(codigo, descricao) => alterarItem(n, {
+                                         codigoProduto: codigo,
+                                         // mantem a descricao gravada enquanto o codigo nao mudar
+                                         descricaoProduto: descricao ?? (codigo === item.codigoProduto ? item.descricaoProduto : '')
+                                       })} />
+                  {item.descricaoProduto && <span className="descricao-produto">{item.descricaoProduto}</span>}
+                </Campo>
+                <Campo label="Qtd." obrigatorio erro={erroItem(n, 'quantidade')}>
+                  <input type="number" inputMode="numeric" min={1} step={1} value={item.quantidade} disabled={!editavel}
+                         className={erroItem(n, 'quantidade') ? 'invalido' : undefined}
+                         onChange={(e) => alterarItem(n, { quantidade: e.target.value })} />
+                </Campo>
+                <Campo label="Motivo" obrigatorio erro={erroItem(n, 'motivoId')}>
+                  <div className="motivo-linha">
+                    <select value={item.motivoId} disabled={!editavel}
+                            className={erroItem(n, 'motivoId') ? 'invalido' : undefined}
+                            onChange={(e) => alterarItem(n, { motivoId: e.target.value })}>
+                      <option value="">Selecione...</option>
+                      {opcoesMotivo.map((m) => <option key={m.id} value={m.id}>{m.descricao}</option>)}
+                    </select>
+                    {editavel && (
+                      <button type="button" className="btn-secundario btn-pequeno" title="Cadastrar um motivo novo"
+                              onClick={() => setModal({ tipo: 'motivo', indice: n, descricao: '' })}>+ Motivo</button>
+                    )}
+                  </div>
+                </Campo>
+                {editavel && (
+                  <button type="button" className="btn-perigo btn-pequeno far-item-remover"
+                          disabled={form.itens.length === 1} title="Remover este produto"
+                          onClick={() => removerItem(n)}>Remover</button>
+                )}
+              </div>
+            ))}
+
+            {editavel && (
+              <div>
+                <button type="button" className="btn-secundario" onClick={incluirItem}>+ Adicionar produto</button>
+              </div>
+            )}
           </div>
           <Campo label="Obs. da ocorrência" erro={erros.obsOcorrencia}>
             <textarea value={form.obsOcorrencia} maxLength={1000} disabled={!editavel}
@@ -633,19 +733,29 @@ export default function FarFormPage() {
       {modal && (
         <Modal titulo={{
           excluirAnexo: 'Excluir arquivo',
+          motivo: 'Cadastrar motivo de avaria',
           baixa: 'Registrar vínculo com a baixa fiscal',
           desfazer: 'Desfazer vínculo com a baixa fiscal'
         }[modal.tipo]} aoFechar={() => setModal(null)}
                rodape={(
                  <>
                    <button type="button" className="btn-secundario" onClick={() => setModal(null)}>Cancelar</button>
-                   <button type="button" className={modal.tipo === 'baixa' ? 'btn-sucesso' : 'btn-perigo'}
+                   <button type="button" className={modal.tipo === 'baixa' ? 'btn-sucesso' : modal.tipo === 'motivo' ? 'btn-primario' : 'btn-perigo'}
                            disabled={salvando} onClick={confirmarModal}>
                      {salvando ? 'Aguarde...' : 'Confirmar'}
                    </button>
                  </>
                )}>
           {modal.erro && <div className="aviso erro">{modal.erro}</div>}
+          {modal.tipo === 'motivo' && (
+            <form className="formulario" onSubmit={(e) => { e.preventDefault(); confirmarModal() }}>
+              <Campo label="Descrição do motivo" obrigatorio
+                     ajuda="Fica disponível para as próximas FARs. Confira se já não existe na lista antes de cadastrar.">
+                <input value={modal.descricao} maxLength={100} autoFocus placeholder="Ex.: Embalagem violada"
+                       onChange={(e) => setModal({ ...modal, descricao: e.target.value, erro: undefined })} />
+              </Campo>
+            </form>
+          )}
           {modal.tipo === 'excluirAnexo' && <p>Excluir o arquivo <strong>{modal.anexo.nomeArquivo}</strong>?</p>}
           {modal.tipo === 'baixa' && (
             <div className="formulario">

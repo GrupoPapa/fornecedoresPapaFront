@@ -30,6 +30,8 @@ const ROTULO_CAMPO = {
   codigo: 'Código de fábrica do produto',
   codigoProduto: 'Código do produto',
   qtdProdutos: 'Qtd. de produtos',
+  quantidade: 'Quantidade',
+  itens: 'Produtos',
   motivoId: 'Motivo',
   dataVisita: 'Data da visita',
   descricao: 'Descrição',
@@ -60,13 +62,20 @@ const ROTULO_CAMPO = {
   usuario: 'E-mail ou código do fornecedor'
 }
 
+/** Rotulo do campo; itens de lista ("itens[2].quantidade") viram "Produto 3 - Quantidade". */
+function rotuloCampo(campo) {
+  const item = /^itens\[(\d+)\]\.(\w+)$/.exec(campo || '')
+  if (item) return `Produto ${Number(item[1]) + 1} - ${ROTULO_CAMPO[item[2]] || item[2]}`
+  return ROTULO_CAMPO[campo] || campo
+}
+
 /** Extrai a mensagem de erro da API em um texto amigavel, identificando o campo. */
 export function mensagemErro(error, padrao = 'Não foi possível concluir a operação.') {
   const data = error?.response?.data
   if (!data) return error?.message || padrao
   if (data.campos?.length) {
     return data.campos
-      .map((c) => `${ROTULO_CAMPO[c.campo] || c.campo}: ${c.mensagem}`)
+      .map((c) => `${rotuloCampo(c.campo)}: ${c.mensagem}`)
       .join(' · ')
   }
   return data.mensagem || padrao

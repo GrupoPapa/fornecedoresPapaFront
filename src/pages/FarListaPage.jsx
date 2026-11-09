@@ -171,9 +171,9 @@ export default function FarListaPage() {
             <tr>
               <th>Data visita</th>
               {admin && <th>Fornecedor</th>}
-              <th>Cód. produto</th>
-              <th className="numero">Qtd</th>
-              <th>Motivo</th>
+              <th>Produtos</th>
+              <th className="numero">Qtd total</th>
+              <th>Motivo(s)</th>
               <th>Nº FAR</th>
               <th>Abertura FAR</th>
               <th>Situação</th>
@@ -193,9 +193,10 @@ export default function FarListaPage() {
               <tr key={f.id}>
                 <td>{formatarData(f.dataVisita)}</td>
                 {admin && <td className="quebra">{f.fornecedorNome}</td>}
-                <td className="quebra">{f.codigoProduto || '-'}</td>
+                <td className="quebra">{f.produtosResumo || '-'}
+                  {f.itens?.length > 1 && <span className="texto-suave"> ({f.itens.length} produtos)</span>}</td>
                 <td className="numero">{f.qtdProdutos}</td>
-                <td className="quebra">{f.motivoDescricao}</td>
+                <td className="quebra">{f.motivosResumo}</td>
                 <td><strong>{f.numeroFar || '-'}</strong></td>
                 <td>{formatarData(f.dataAberturaFar)}</td>
                 <td>

@@ -147,6 +147,7 @@ function corpoFar(dados, comprovante) {
 export const farApi = {
   listar: (params) => http.get('/api/far', { params }).then((r) => r.data),
   motivos: () => http.get('/api/far/motivos').then((r) => r.data),
+  criarMotivoFar: (dados) => http.post('/api/far/motivos', dados).then((r) => r.data),
   buscar: (id) => http.get(`/api/far/${id}`).then((r) => r.data),
   criar: (dados, comprovante, fornecedorId) =>
     http.post('/api/far', corpoFar(dados, comprovante), { params: fornecedorId ? { fornecedorId } : {} })

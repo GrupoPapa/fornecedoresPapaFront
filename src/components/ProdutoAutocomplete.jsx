@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 
 const MAX_SUGESTOES = 12
 
-function normalizar(texto) {
+export function normalizar(texto) {
   return String(texto ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase()
 }
 
@@ -11,17 +11,22 @@ export function codigoDoProduto(p) {
   return p.codProdErp ? String(p.codProdErp) : (p.codigoFabrica || '')
 }
 
+/** Produto do catalogo com exatamente este codigo (CODPROD ou codigo de fabrica). */
+export function produtoPeloCodigo(produtos, codigo) {
+  const c = normalizar(String(codigo || '').trim())
+  if (!c) return null
+  return produtos.find((p) => (p.codProdErp && String(p.codProdErp) === c) || normalizar(p.codigoFabrica) === c) || null
+}
+
 /**
- * Campo de codigo(s) do produto com pesquisa por nome.
- * O fornecedor digita parte do nome ou do codigo; ao escolher, o codigo substitui o
- * trecho que estava sendo digitado (depois da ultima virgula). Varios produtos = codigos separados por virgula.
+ * Campo de codigo do produto com pesquisa por nome.
+ * O fornecedor digita parte do nome ou do codigo e escolhe na lista; ou digita o codigo direto.
+ * aoMudar(codigo, descricao): descricao vem do catalogo quando o codigo e reconhecido.
  */
-export default function ProdutoAutocomplete({ valor, aoMudar, produtos, disabled, invalido, maxLength = 200 }) {
+export default function ProdutoAutocomplete({ valor, aoMudar, produtos, disabled, invalido, maxLength = 60 }) {
   const [aberto, setAberto] = useState(false)
   const [ativo, setAtivo] = useState(0)
-
-  const partes = valor.split(',')
-  const termo = normalizar(partes[partes.length - 1].trim())
+  const termo = normalizar(valor.trim())
 
   const sugestoes = useMemo(() => {
     if (termo.length < 2) return []
@@ -32,21 +37,15 @@ export default function ProdutoAutocomplete({ valor, aoMudar, produtos, disabled
     }).slice(0, MAX_SUGESTOES)
   }, [produtos, termo])
 
-  // nomes dos codigos ja informados, para o fornecedor conferir
-  const reconhecidos = useMemo(() => {
-    const porCodigo = new Map()
-    produtos.forEach((p) => {
-      if (p.codProdErp) porCodigo.set(String(p.codProdErp), p)
-      if (p.codigoFabrica) porCodigo.set(normalizar(p.codigoFabrica), p)
-    })
-    return valor.split(',').map((c) => c.trim()).filter(Boolean)
-      .map((c) => ({ codigo: c, produto: porCodigo.get(c) || porCodigo.get(normalizar(c)) }))
-      .filter((x) => x.produto)
-  }, [valor, produtos])
+  function digitar(texto) {
+    const p = produtoPeloCodigo(produtos, texto)
+    aoMudar(texto, p ? p.descricao : null)
+    setAberto(true)
+    setAtivo(0)
+  }
 
   function escolher(p) {
-    const anteriores = partes.slice(0, -1).map((s) => s.trim()).filter(Boolean)
-    aoMudar([...anteriores, codigoDoProduto(p)].join(', ').slice(0, maxLength))
+    aoMudar(codigoDoProduto(p).slice(0, maxLength), p.descricao)
     setAberto(false)
   }
 
@@ -58,17 +57,20 @@ export default function ProdutoAutocomplete({ valor, aoMudar, produtos, disabled
     else if (e.key === 'Escape') setAberto(false)
   }
 
+  // ja escolhido: nao reabre a lista so porque o codigo bate com o nome de outro produto
+  const escolhido = !!produtoPeloCodigo(produtos, valor)
+
   return (
     <div className="autocomplete">
       <input value={valor} maxLength={maxLength} disabled={disabled} autoComplete="off"
-             placeholder="Digite o código ou o nome do produto"
+             placeholder="Código ou nome do produto"
              className={invalido ? 'invalido' : undefined}
-             onChange={(e) => { aoMudar(e.target.value); setAberto(true); setAtivo(0) }}
+             onChange={(e) => digitar(e.target.value)}
              onFocus={() => setAberto(true)}
              onBlur={() => setTimeout(() => setAberto(false), 150)}
              onKeyDown={teclado} />
 
-      {aberto && !disabled && sugestoes.length > 0 && (
+      {aberto && !disabled && !escolhido && sugestoes.length > 0 && (
         <ul className="sugestoes" role="listbox">
           {sugestoes.map((p, i) => (
             <li key={`${p.origem}-${p.codProdErp || p.produtoId}`} role="option" aria-selected={i === ativo}
@@ -85,16 +87,8 @@ export default function ProdutoAutocomplete({ valor, aoMudar, produtos, disabled
           ))}
         </ul>
       )}
-      {aberto && !disabled && termo.length >= 2 && sugestoes.length === 0 && produtos.length > 0 && (
+      {aberto && !disabled && !escolhido && termo.length >= 2 && sugestoes.length === 0 && produtos.length > 0 && (
         <ul className="sugestoes"><li className="vazio-sugestao">Nenhum produto encontrado. Você pode digitar o código direto.</li></ul>
-      )}
-
-      {reconhecidos.length > 0 && (
-        <ul className="produtos-reconhecidos">
-          {reconhecidos.map(({ codigo, produto }) => (
-            <li key={codigo}><strong>{codigo}</strong> {produto.descricao}</li>
-          ))}
-        </ul>
       )}
     </div>
   )
