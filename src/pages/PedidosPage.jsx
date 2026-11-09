@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { fornecedoresApi, pedidosApi } from '../api/servicos'
+import { fornecedoresApi, importacaoApi, pedidosApi } from '../api/servicos'
+import ImportarPlanilha from '../components/ImportarPlanilha'
 import { mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
 import { formatarDataHora, ROTULO_STATUS_PEDIDO } from '../utils/format'
@@ -48,6 +49,17 @@ export default function PedidosPage() {
     setFiltros((f) => ({ ...f, [campo]: valor }))
   }
 
+  const [importando, setImportando] = useState(false)
+
+  function abrirImportacao() {
+    if (admin && !filtros.fornecedorId) {
+      setErro('Selecione o fornecedor no filtro para baixar o modelo ou importar a planilha dele.')
+      return
+    }
+    setErro('')
+    setImportando(true)
+  }
+
   async function iniciarPedido() {
     setErro('')
     setAbrindo(true)
@@ -70,18 +82,39 @@ export default function PedidosPage() {
             ? 'Cada pedido reúne os produtos que o fornecedor enviou de uma vez.'
             : 'Monte um pedido com todos os produtos e envie de uma vez só.'}</p>
         </div>
-        {!admin && (
-          <button type="button" className="btn-primario" onClick={iniciarPedido} disabled={abrindo}>
-            {abrindo ? 'Abrindo...' : 'Iniciar cadastro de produtos'}
+        <div className="botoes">
+          <button type="button" className="btn-secundario" onClick={abrirImportacao}
+                  title={admin ? 'Modelo e importação para o fornecedor selecionado no filtro' : undefined}>
+            Planilha Excel
           </button>
-        )}
-        {admin && (
-          <button type="button" className="btn-secundario" onClick={iniciarPedido} disabled={abrindo}
-                  title="Abre um pedido para o fornecedor selecionado no filtro">
-            Iniciar cadastro de produtos para o fornecedor filtrado
-          </button>
-        )}
+          {!admin && (
+            <button type="button" className="btn-primario" onClick={iniciarPedido} disabled={abrindo}>
+              {abrindo ? 'Abrindo...' : 'Iniciar cadastro de produtos'}
+            </button>
+          )}
+          {admin && (
+            <button type="button" className="btn-secundario" onClick={iniciarPedido} disabled={abrindo}
+                    title="Abre um pedido para o fornecedor selecionado no filtro">
+              Iniciar cadastro de produtos para o fornecedor filtrado
+            </button>
+          )}
+        </div>
       </div>
+
+      {importando && (
+        <ImportarPlanilha
+          titulo={`Cadastro de produtos por planilha${admin && filtros.fornecedorId
+            ? ` - ${fornecedores.find((f) => String(f.id) === String(filtros.fornecedorId))?.razaoSocial || ''}` : ''}`}
+          explicacao="Os produtos entram no pedido de cadastro em aberto do fornecedor. Se alguma linha tiver erro, nada é importado e o portal mostra o que corrigir."
+          nomeModelo="modelo-cadastro-produtos.xlsx"
+          baixarModelo={() => importacaoApi.modeloProdutos(admin ? filtros.fornecedorId : null)}
+          importar={(arquivo) => importacaoApi.importarProdutos(arquivo, admin ? filtros.fornecedorId : null)}
+          aoFechar={() => setImportando(false)}
+          aoConcluir={(r) => {
+            setImportando(false)
+            navegar(`/pedidos/${r.pedidoId}`, { state: { mensagem: `${r.importados} produto(s) importado(s) da planilha. ${(r.avisos || []).join(' ')}` } })
+          }} />
+      )}
 
       {erro && <div className="aviso erro">{erro}</div>}
 

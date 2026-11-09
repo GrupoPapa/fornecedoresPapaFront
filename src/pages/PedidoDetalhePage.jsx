@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams } from 'react-router-dom'
 import { pedidosApi, produtoErpApi, produtosApi } from '../api/servicos'
 import { mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
@@ -15,7 +15,9 @@ export default function PedidoDetalhePage() {
   const [pedido, setPedido] = useState(null)
   const [carregando, setCarregando] = useState(true)
   const [erro, setErro] = useState('')
-  const [mensagem, setMensagem] = useState('')
+  const localizacao = useLocation()
+  // mensagem deixada pela tela anterior (ex.: importacao da planilha)
+  const [mensagem, setMensagem] = useState(localizacao.state?.mensagem || '')
   const [observacao, setObservacao] = useState('')
   const [analise, setAnalise] = useState(null)
   const [ressalva, setRessalva] = useState(null)

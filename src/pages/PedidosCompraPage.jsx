@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { comprasApi, fornecedoresApi } from '../api/servicos'
+import { comprasApi, fornecedoresApi, importacaoApi } from '../api/servicos'
+import ImportarPlanilha from '../components/ImportarPlanilha'
 import { mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
 import { formatarData, formatarDataHora, formatarMoeda, ROTULO_STATUS_COMPRA } from '../utils/format'
@@ -43,6 +44,17 @@ export default function PedidosCompraPage() {
   function aplicarFiltro(campo, valor) {
     setPagina(0)
     setFiltros((f) => ({ ...f, [campo]: valor }))
+  }
+
+  const [importando, setImportando] = useState(false)
+
+  function abrirImportacao() {
+    if (admin && !filtros.fornecedorId) {
+      setErro('Selecione o fornecedor no filtro para baixar o modelo ou importar a planilha dele.')
+      return
+    }
+    setErro('')
+    setImportando(true)
   }
 
   function novoPedido() {
@@ -88,6 +100,10 @@ export default function PedidosCompraPage() {
             : 'Escolha os produtos, informe quantidade e preço e envie o pedido para análise.'}</p>
         </div>
         <div className="botoes">
+          <button type="button" className="btn-secundario" onClick={abrirImportacao}
+                  title={admin ? 'Modelo e importação para o fornecedor selecionado no filtro' : undefined}>
+            Planilha Excel
+          </button>
           <button type="button" className="btn-secundario" onClick={() => exportar('xlsx')}>Exportar Excel</button>
           <button type="button" className="btn-secundario" onClick={() => exportar('csv')}>Exportar CSV</button>
           <button type="button" className={admin ? 'btn-secundario' : 'btn-primario'} onClick={novoPedido}
@@ -98,6 +114,21 @@ export default function PedidosCompraPage() {
       </div>
 
       {erro && <div className="aviso erro">{erro}</div>}
+
+      {importando && (
+        <ImportarPlanilha
+          titulo={`Pedido de compra por planilha${admin && filtros.fornecedorId
+            ? ` - ${fornecedores.find((f) => String(f.id) === String(filtros.fornecedorId))?.razaoSocial || ''}` : ''}`}
+          explicacao="O pedido é criado em digitação com todos os itens. Confira e envie para análise. Se alguma linha tiver erro, nada é importado."
+          nomeModelo="modelo-pedido-compra.xlsx"
+          baixarModelo={() => importacaoApi.modeloCompra(admin ? filtros.fornecedorId : null)}
+          importar={(arquivo) => importacaoApi.importarCompra(arquivo, admin ? filtros.fornecedorId : null)}
+          aoFechar={() => setImportando(false)}
+          aoConcluir={(r) => {
+            setImportando(false)
+            navegar(`/compras/${r.pedidoId}`, { state: { mensagem: (r.avisos || []).join(' ') } })
+          }} />
+      )}
 
       <div className="filtros">
         <Campo label="Buscar">

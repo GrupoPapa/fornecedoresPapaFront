@@ -360,3 +360,10 @@ td.quebra { white-space: normal; min-width: 180px; }
   .conteudo { padding: 14px; }
   th, td { padding: 8px; }
 }
+
+/* importacao por planilha */
+.passos-importacao { margin: 0; padding-left: 20px; display: grid; gap: 12px; font-size: 14px; }
+.passos-importacao li > div { margin-top: 6px; }
+.erros-planilha { max-height: 300px; overflow: auto; }
+.erros-planilha td, .erros-planilha th { font-size: 13px; }
+

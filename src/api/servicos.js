@@ -176,3 +176,19 @@ export const farApi = {
   desfazerBaixa: (id, motivo) =>
     http.post(`/api/admin/far/${id}/baixa-fiscal/desfazer`, { motivo }).then((r) => r.data)
 }
+
+/** Planilhas modelo e importacao (cadastro de produtos e pedido de compra). */
+function enviarPlanilha(url, arquivo, fornecedorId) {
+  const corpo = new FormData()
+  corpo.append('arquivo', arquivo)
+  return http.post(url, corpo, { params: fornecedorId ? { fornecedorId } : {}, timeout: 180000 }).then((r) => r.data)
+}
+
+export const importacaoApi = {
+  modeloProdutos: (fornecedorId) => http.get('/api/importacao/produtos/modelo',
+    { params: fornecedorId ? { fornecedorId } : {}, responseType: 'blob', timeout: 60000 }).then((r) => r.data),
+  importarProdutos: (arquivo, fornecedorId) => enviarPlanilha('/api/importacao/produtos', arquivo, fornecedorId),
+  modeloCompra: (fornecedorId) => http.get('/api/importacao/pedidos-compra/modelo',
+    { params: fornecedorId ? { fornecedorId } : {}, responseType: 'blob', timeout: 60000 }).then((r) => r.data),
+  importarCompra: (arquivo, fornecedorId) => enviarPlanilha('/api/importacao/pedidos-compra', arquivo, fornecedorId)
+}

@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react'
-import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { comprasApi } from '../api/servicos'
 import { mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
@@ -77,7 +77,9 @@ export default function PedidoCompraPage() {
   const [carregando, setCarregando] = useState(true)
   const [salvando, setSalvando] = useState(false)
   const [erro, setErro] = useState('')
-  const [mensagem, setMensagem] = useState('')
+  const localizacao = useLocation()
+  // mensagem deixada pela tela anterior (ex.: importacao da planilha)
+  const [mensagem, setMensagem] = useState(localizacao.state?.mensagem || '')
   const [comparativo, setComparativo] = useState(null)
   const [aberto, setAberto] = useState({})
   const [historico, setHistorico] = useState([])
