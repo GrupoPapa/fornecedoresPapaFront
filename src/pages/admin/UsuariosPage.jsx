@@ -36,6 +36,11 @@ export default function UsuariosPage() {
   }, [pagina, termo])
 
   useEffect(() => { carregar() }, [carregar])
+  // ordenado por codigo do WinThor: digitar o codigo com a lista aberta ja posiciona no fornecedor
+  const fornecedoresOrdenados = [...fornecedores].sort((a, b) =>
+    (a.codFornecedorErp ?? Number.MAX_SAFE_INTEGER) - (b.codFornecedorErp ?? Number.MAX_SAFE_INTEGER)
+    || a.razaoSocial.localeCompare(b.razaoSocial))
+
   useEffect(() => { fornecedoresApi.todos().then(setFornecedores).catch(() => setFornecedores([])) }, [])
 
   async function salvar(e) {
@@ -128,7 +133,8 @@ export default function UsuariosPage() {
                 <td>{u.nome}</td>
                 <td>{u.email}</td>
                 <td>{u.perfil === 'ADMIN' ? 'Administrador' : 'Fornecedor'}</td>
-                <td>{u.fornecedorNome || '-'}</td>
+                <td>{u.fornecedorNome
+                  ? `${u.fornecedorCodErp ? `${u.fornecedorCodErp} - ` : ''}${u.fornecedorNome}` : '-'}</td>
                 <td>{u.ativo ? 'Ativo' : 'Inativo'}</td>
                 <td>{formatarDataHora(u.ultimoAcesso)}</td>
                 <td className="acoes">
@@ -177,7 +183,11 @@ export default function UsuariosPage() {
                   <select value={edicao.fornecedorId} required
                           onChange={(e) => setEdicao({ ...edicao, fornecedorId: e.target.value })}>
                     <option value="">Selecione...</option>
-                    {fornecedores.map((f) => <option key={f.id} value={f.id}>{f.razaoSocial}</option>)}
+                    {fornecedoresOrdenados.map((f) => (
+                      <option key={f.id} value={f.id}>
+                        {f.codFornecedorErp ? `${f.codFornecedorErp} - ` : '(sem código) - '}{f.razaoSocial}
+                      </option>
+                    ))}
                   </select>
                 </Campo>
               )}
