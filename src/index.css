@@ -302,6 +302,22 @@ tr.detalhe-precos td { background: #fbfcfd; white-space: normal; }
 .leitura { padding: 8px 10px; background: #f7f8f9; border: 1px solid var(--cor-borda); border-radius: var(--raio);
   font-size: 14px; white-space: pre-wrap; min-height: 38px; }
 td.quebra { white-space: normal; min-width: 180px; }
+.autocomplete { position: relative; }
+.autocomplete input { width: 100%; }
+.autocomplete .sugestoes {
+  position: absolute; z-index: 20; top: calc(100% + 4px); left: 0;
+  width: max(100%, min(520px, 90vw)); max-height: 320px; overflow: auto;
+  list-style: none; margin: 0; padding: 4px 0; background: #fff;
+  border: 1px solid var(--cor-borda); border-radius: var(--raio); box-shadow: 0 10px 24px rgba(0,0,0,.12);
+}
+.autocomplete .sugestoes li { padding: 7px 12px; cursor: pointer; font-size: 13px; line-height: 1.35; }
+.autocomplete .sugestoes li.ativo { background: #fdf0f0; }
+.autocomplete .sugestoes li strong { color: var(--cor-primaria); margin-right: 4px; }
+.autocomplete .sugestoes li small { display: block; color: var(--cor-texto-suave); font-size: 11px; }
+.autocomplete .sugestoes li.vazio-sugestao { cursor: default; color: var(--cor-texto-suave); }
+.produtos-reconhecidos { list-style: none; margin: 6px 0 0; padding: 0; display: grid; gap: 2px; font-size: 12px; }
+.produtos-reconhecidos li { color: var(--cor-sucesso); }
+.produtos-reconhecidos li strong { margin-right: 4px; }
 
 @media (max-width: 640px) {
   .conteudo { padding: 14px; }

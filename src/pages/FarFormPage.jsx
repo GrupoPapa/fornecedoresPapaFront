@@ -1,15 +1,16 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { farApi } from '../api/servicos'
+import { comprasApi, farApi } from '../api/servicos'
 import { errosPorCampo, mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
 import { formatarData, formatarDataHora, formatarTamanho, hojeIso, ROTULO_STATUS_FAR } from '../utils/format'
 import Campo from '../components/Campo'
 import Modal from '../components/Modal'
+import ProdutoAutocomplete from '../components/ProdutoAutocomplete'
 
 const FORM_VAZIO = {
   dataVisita: '', codigoProduto: '', qtdProdutos: '', motivoId: '', obsOcorrencia: '',
-  dataAberturaFar: '', numeroFar: '', status: 'EM_ANALISE', statusOutros: '',
+  dataAberturaFar: '', numeroFar: '', numeroNota: '', numeroPedido: '', status: 'EM_ANALISE', statusOutros: '',
   obsFarFornecedor: '', obsFarEmpresa: ''
 }
 
@@ -26,6 +27,7 @@ const ROTULO_EVENTO = {
 const ROTULO_ANEXO = { COMPROVANTE_PAGAMENTO: 'Comprovante de pagamento', OUTRO: 'Outro documento' }
 const ACEITOS = '.pdf,.jpg,.jpeg,.png,.webp,application/pdf,image/jpeg,image/png,image/webp'
 const MAX_MB = 5
+const MAX_ANEXOS = 10
 
 function formDoServidor(f) {
   return {
@@ -36,6 +38,8 @@ function formDoServidor(f) {
     obsOcorrencia: f.obsOcorrencia || '',
     dataAberturaFar: f.dataAberturaFar || '',
     numeroFar: f.numeroFar || '',
+    numeroNota: f.numeroNota || '',
+    numeroPedido: f.numeroPedido || '',
     status: f.status || 'EM_ANALISE',
     statusOutros: f.statusOutros || '',
     obsFarFornecedor: f.obsFarFornecedor || '',
@@ -85,6 +89,7 @@ export default function FarFormPage() {
   const [far, setFar] = useState(null)
   const [form, setForm] = useState(FORM_VAZIO)
   const [motivos, setMotivos] = useState([])
+  const [produtos, setProdutos] = useState([])
   const [fornecedorNome, setFornecedorNome] = useState('')
   const [anexos, setAnexos] = useState([])
   const [historico, setHistorico] = useState([])
@@ -96,8 +101,15 @@ export default function FarFormPage() {
   const [salvando, setSalvando] = useState(false)
   const [modal, setModal] = useState(null)
   const [novoAnexo, setNovoAnexo] = useState({ tipo: 'OUTRO', arquivo: null })
+  // FAR nova: os anexos ficam na fila e sobem logo depois de registrar
+  const [pendentes, setPendentes] = useState([])
 
   const editavel = novo || !!far?.editavel
+
+  // mensagem deixada pela tela anterior (ex.: "FAR registrada." ao sair de /far/novo)
+  useEffect(() => {
+    if (local.state?.mensagem) setMensagem(local.state.mensagem)
+  }, [local.state])
 
   const carregarRelacionados = useCallback((farId) => {
     farApi.anexos(farId).then(setAnexos).catch(() => setAnexos([]))
@@ -107,6 +119,15 @@ export default function FarFormPage() {
   useEffect(() => {
     farApi.motivos().then(setMotivos).catch(() => setMotivos([]))
   }, [])
+
+  // catalogo do fornecedor (WinThor + produtos novos do portal) para a pesquisa por nome
+  const fornecedorDoCatalogo = admin ? (novo ? fornecedorParam : far?.fornecedorId) : null
+  useEffect(() => {
+    if (admin && !fornecedorDoCatalogo) return
+    comprasApi.catalogo(fornecedorDoCatalogo || undefined)
+      .then((c) => setProdutos(c.produtos || []))
+      .catch(() => setProdutos([]))
+  }, [admin, fornecedorDoCatalogo])
 
   // admin registrando em nome do fornecedor: mostra o nome dele no cabecalho
   useEffect(() => {
@@ -155,7 +176,8 @@ export default function FarFormPage() {
     return motivos
   }, [motivos, far])
 
-  const qtdComprovantes = far?.qtdComprovantes || 0
+  const comprovantesNaFila = novo ? pendentes.filter((p) => p.tipo === 'COMPROVANTE_PAGAMENTO').length : 0
+  const qtdComprovantes = (far?.qtdComprovantes || 0) + comprovantesNaFila
   const precisaComprovante = form.status === 'FINALIZADO_APROVADO' && qtdComprovantes === 0
 
   function alterar(campo, valor) {
@@ -194,28 +216,51 @@ export default function FarFormPage() {
       obsOcorrencia: form.obsOcorrencia.trim() || null,
       dataAberturaFar: form.dataAberturaFar || null,
       numeroFar: form.numeroFar.trim() || null,
+      numeroNota: form.numeroNota.trim() || null,
+      numeroPedido: form.numeroPedido.trim() || null,
       status: form.status,
       statusOutros: form.status === 'OUTROS' ? form.statusOutros.trim() : null,
       obsFarFornecedor: form.obsFarFornecedor.trim() || null,
       obsFarEmpresa: admin ? (form.obsFarEmpresa.trim() || null) : null
     }
-    // so envia o comprovante quando ele for usado (processo aprovado)
-    const arquivo = form.status === 'FINALIZADO_APROVADO' ? comprovante : null
+    // so envia o comprovante quando ele for usado (processo aprovado). Na FAR nova, um
+    // comprovante que esteja na fila de anexos serve: ele vai junto com o registro.
+    const aprovado = form.status === 'FINALIZADO_APROVADO'
+    const comprovanteDaFila = novo && aprovado && !comprovante
+      ? pendentes.find((p) => p.tipo === 'COMPROVANTE_PAGAMENTO') : null
+    const arquivo = aprovado ? (comprovante || comprovanteDaFila?.arquivo || null) : null
+    const restantes = novo ? pendentes.filter((p) => p !== comprovanteDaFila) : []
     setSalvando(true)
     try {
       const salvo = novo
         ? await farApi.criar(dados, arquivo, admin ? fornecedorParam : null)
         : await farApi.atualizar(id, dados, arquivo)
+      if (novo) {
+        const falhas = []
+        for (const p of restantes) {
+          try {
+            await farApi.anexar(salvo.id, p.arquivo, p.tipo)
+          } catch (err) {
+            falhas.push(`${p.arquivo.name}: ${mensagemErro(err)}`)
+          }
+        }
+        setPendentes([])
+        navegar(`/far/${salvo.id}`, {
+          replace: true,
+          state: {
+            mensagem: falhas.length
+              ? `FAR registrada, mas ${falhas.length} arquivo(s) não foram anexados (${falhas.join('; ')}). Anexe de novo abaixo.`
+              : 'FAR registrada.'
+          }
+        })
+        return
+      }
       setFar(salvo)
       setForm(formDoServidor(salvo))
       setComprovante(null)
       setErros({})
-      setMensagem(novo ? 'FAR registrada.' : 'Alterações salvas.')
-      if (novo) {
-        navegar(`/far/${salvo.id}`, { replace: true, state: { mensagem: 'FAR registrada.' } })
-      } else {
-        carregarRelacionados(salvo.id)
-      }
+      setMensagem('Alterações salvas.')
+      carregarRelacionados(salvo.id)
     } catch (err) {
       setErro(mensagemErro(err))
       setErros(errosPorCampo(err))
@@ -231,6 +276,16 @@ export default function FarFormPage() {
       return
     }
     setErro('')
+    if (novo) {
+      if (pendentes.length >= MAX_ANEXOS) {
+        setErro(`No máximo ${MAX_ANEXOS} anexos por FAR.`)
+        return
+      }
+      setPendentes((lista) => [...lista, { chave: `${Date.now()}-${lista.length}`, ...novoAnexo }])
+      setNovoAnexo({ tipo: 'OUTRO', arquivo: null })
+      if (novoAnexo.tipo === 'COMPROVANTE_PAGAMENTO') setErros((e) => ({ ...e, comprovante: undefined }))
+      return
+    }
     setSalvando(true)
     try {
       await farApi.anexar(id, novoAnexo.arquivo, novoAnexo.tipo)
@@ -333,10 +388,12 @@ export default function FarFormPage() {
                      onChange={(e) => alterar('dataVisita', e.target.value)} />
             </Campo>
             <Campo label="Código do produto" obrigatorio erro={erros.codigoProduto}
-                   ajuda="Código de fábrica ou do WinThor. Mais de um? Separe por vírgula.">
-              <input value={form.codigoProduto} maxLength={200} disabled={!editavel}
-                     className={erros.codigoProduto ? 'invalido' : undefined}
-                     onChange={(e) => alterar('codigoProduto', e.target.value)} />
+                   ajuda={produtos.length
+                     ? 'Pesquise pelo nome ou digite o código. Mais de um produto? Separe por vírgula.'
+                     : 'Código de fábrica ou do WinThor. Mais de um? Separe por vírgula.'}>
+              <ProdutoAutocomplete valor={form.codigoProduto} produtos={produtos} disabled={!editavel}
+                                   invalido={!!erros.codigoProduto}
+                                   aoMudar={(v) => alterar('codigoProduto', v)} />
             </Campo>
             <Campo label="Qtd. de produtos" obrigatorio erro={erros.qtdProdutos} ajuda="Quantidade de produtos avariados.">
               <input type="number" inputMode="numeric" min={1} step={1} value={form.qtdProdutos} disabled={!editavel}
@@ -374,6 +431,16 @@ export default function FarFormPage() {
                      className={erros.numeroFar ? 'invalido' : undefined}
                      onChange={(e) => alterar('numeroFar', e.target.value)} />
             </Campo>
+            <Campo label="Nº da nota fiscal" erro={erros.numeroNota}>
+              <input value={form.numeroNota} maxLength={30} inputMode="numeric" disabled={!editavel}
+                     className={erros.numeroNota ? 'invalido' : undefined}
+                     onChange={(e) => alterar('numeroNota', e.target.value)} />
+            </Campo>
+            <Campo label="Nº do pedido" erro={erros.numeroPedido}>
+              <input value={form.numeroPedido} maxLength={30} inputMode="numeric" disabled={!editavel}
+                     className={erros.numeroPedido ? 'invalido' : undefined}
+                     onChange={(e) => alterar('numeroPedido', e.target.value)} />
+            </Campo>
             <Campo label="Situação" obrigatorio erro={erros.status}>
               <select value={form.status} disabled={!editavel} onChange={(e) => alterar('status', e.target.value)}>
                 {Object.entries(ROTULO_STATUS_FAR).map(([valor, rotulo]) => (
@@ -395,7 +462,11 @@ export default function FarFormPage() {
               {qtdComprovantes > 0 ? (
                 <p style={{ margin: 0 }}>
                   <strong>Comprovante de pagamento anexado</strong>
-                  <span className="texto-suave"> · {qtdComprovantes} arquivo(s), veja em Anexos.</span>
+                  <span className="texto-suave">
+                    {comprovantesNaFila > 0 && !far
+                      ? ' · está na lista de anexos e será enviado ao registrar a FAR.'
+                      : ` · ${qtdComprovantes} arquivo(s), veja em Anexos.`}
+                  </span>
                 </p>
               ) : (
                 <Campo label="Comprovante de pagamento" obrigatorio erro={erros.comprovante}
@@ -432,10 +503,30 @@ export default function FarFormPage() {
       </section>
 
       {/* ------------------------------------------------------ anexos */}
-      {!novo && (
-        <section className="cartao">
+      <section className="cartao">
           <h3>Anexos</h3>
-          {anexos.length === 0 ? (
+          {novo && (
+            pendentes.length === 0 ? (
+              <p className="texto-suave">
+                Nenhum arquivo. Anexe fotos da avaria, nota fiscal, laudo ou o comprovante de pagamento:
+                eles são enviados ao registrar a FAR.
+              </p>
+            ) : (
+              <ul className="lista-anexos">
+                {pendentes.map((p) => (
+                  <li key={p.chave}>
+                    <span className={`tipo-anexo ${p.tipo}`}>{ROTULO_ANEXO[p.tipo]}</span>
+                    <span className="nome">{p.arquivo.name}
+                      <span className="texto-suave"> · {formatarTamanho(p.arquivo.size)} · será enviado ao registrar</span>
+                    </span>
+                    <button type="button" className="btn-perigo btn-pequeno"
+                            onClick={() => setPendentes((l) => l.filter((x) => x !== p))}>Remover</button>
+                  </li>
+                ))}
+              </ul>
+            )
+          )}
+          {!novo && (anexos.length === 0 ? (
             <p className="texto-suave">Nenhum arquivo anexado.</p>
           ) : (
             <ul className="lista-anexos">
@@ -453,7 +544,7 @@ export default function FarFormPage() {
                 </li>
               ))}
             </ul>
-          )}
+          ))}
           {editavel && (
             <div className="filtros" style={{ marginTop: 12, marginBottom: 0 }}>
               <Campo label="Tipo">
@@ -468,11 +559,10 @@ export default function FarFormPage() {
                        onChange={(e) => setNovoAnexo({ ...novoAnexo, arquivo: e.target.files?.[0] || null })} />
               </Campo>
               <button type="button" className="btn-secundario" disabled={salvando || !novoAnexo.arquivo}
-                      onClick={enviarAnexo}>Anexar</button>
+                      onClick={enviarAnexo}>{novo ? 'Adicionar' : 'Anexar'}</button>
             </div>
           )}
-        </section>
-      )}
+      </section>
 
       {/* ------------------------------------------------------ baixa fiscal */}
       {!novo && far && (
