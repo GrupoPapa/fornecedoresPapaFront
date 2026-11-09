@@ -95,7 +95,7 @@ export default function FarListaPage() {
     }
   }
 
-  const colunas = admin ? 10 : 9
+  const colunas = admin ? 11 : 10
 
   return (
     <>
@@ -121,7 +121,7 @@ export default function FarListaPage() {
       <div className="filtros">
         <Campo label="Buscar">
           <input type="search" value={filtros.termo}
-                 placeholder={admin ? 'Nº FAR, ocorrência, fornecedor ou ref. baixa' : 'Nº da FAR ou ocorrência'}
+                 placeholder={admin ? 'Nº FAR, cód. produto, fornecedor ou ref. baixa' : 'Nº da FAR, cód. produto ou ocorrência'}
                  onChange={(e) => aplicarFiltro('termo', e.target.value)} />
         </Campo>
         <Campo label="Situação">
@@ -171,6 +171,7 @@ export default function FarListaPage() {
             <tr>
               <th>Data visita</th>
               {admin && <th>Fornecedor</th>}
+              <th>Cód. produto</th>
               <th className="numero">Qtd</th>
               <th>Motivo</th>
               <th>Nº FAR</th>
@@ -192,6 +193,7 @@ export default function FarListaPage() {
               <tr key={f.id}>
                 <td>{formatarData(f.dataVisita)}</td>
                 {admin && <td className="quebra">{f.fornecedorNome}</td>}
+                <td className="quebra">{f.codigoProduto || '-'}</td>
                 <td className="numero">{f.qtdProdutos}</td>
                 <td className="quebra">{f.motivoDescricao}</td>
                 <td><strong>{f.numeroFar || '-'}</strong></td>

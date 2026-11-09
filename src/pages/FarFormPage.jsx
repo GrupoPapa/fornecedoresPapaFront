@@ -8,7 +8,7 @@ import Campo from '../components/Campo'
 import Modal from '../components/Modal'
 
 const FORM_VAZIO = {
-  dataVisita: '', qtdProdutos: '', motivoId: '', obsOcorrencia: '',
+  dataVisita: '', codigoProduto: '', qtdProdutos: '', motivoId: '', obsOcorrencia: '',
   dataAberturaFar: '', numeroFar: '', status: 'EM_ANALISE', statusOutros: '',
   obsFarFornecedor: '', obsFarEmpresa: ''
 }
@@ -30,6 +30,7 @@ const MAX_MB = 5
 function formDoServidor(f) {
   return {
     dataVisita: f.dataVisita || '',
+    codigoProduto: f.codigoProduto || '',
     qtdProdutos: f.qtdProdutos ?? '',
     motivoId: f.motivoId ? String(f.motivoId) : '',
     obsOcorrencia: f.obsOcorrencia || '',
@@ -48,6 +49,7 @@ function validar(form, comprovantes) {
   const hoje = hojeIso()
   if (!form.dataVisita) e.dataVisita = 'Informe a data da visita.'
   else if (form.dataVisita > hoje) e.dataVisita = 'A data da visita não pode ser futura.'
+  if (!form.codigoProduto.trim()) e.codigoProduto = 'Informe o código do produto.'
   const qtd = Number(form.qtdProdutos)
   if (form.qtdProdutos === '' || !Number.isInteger(qtd) || qtd <= 0) e.qtdProdutos = 'Informe uma quantidade inteira maior que zero.'
   if (!form.motivoId) e.motivoId = 'Selecione o motivo.'
@@ -186,6 +188,7 @@ export default function FarFormPage() {
     }
     const dados = {
       dataVisita: form.dataVisita,
+      codigoProduto: form.codigoProduto.trim(),
       qtdProdutos: Number(form.qtdProdutos),
       motivoId: Number(form.motivoId),
       obsOcorrencia: form.obsOcorrencia.trim() || null,
@@ -328,6 +331,12 @@ export default function FarFormPage() {
               <input type="date" value={form.dataVisita} max={hojeIso()} disabled={!editavel}
                      className={erros.dataVisita ? 'invalido' : undefined}
                      onChange={(e) => alterar('dataVisita', e.target.value)} />
+            </Campo>
+            <Campo label="Código do produto" obrigatorio erro={erros.codigoProduto}
+                   ajuda="Código de fábrica ou do WinThor. Mais de um? Separe por vírgula.">
+              <input value={form.codigoProduto} maxLength={200} disabled={!editavel}
+                     className={erros.codigoProduto ? 'invalido' : undefined}
+                     onChange={(e) => alterar('codigoProduto', e.target.value)} />
             </Campo>
             <Campo label="Qtd. de produtos" obrigatorio erro={erros.qtdProdutos} ajuda="Quantidade de produtos avariados.">
               <input type="number" inputMode="numeric" min={1} step={1} value={form.qtdProdutos} disabled={!editavel}

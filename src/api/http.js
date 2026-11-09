@@ -28,6 +28,10 @@ http.interceptors.response.use(
 
 const ROTULO_CAMPO = {
   codigo: 'Código de fábrica do produto',
+  codigoProduto: 'Código do produto',
+  qtdProdutos: 'Qtd. de produtos',
+  motivoId: 'Motivo',
+  dataVisita: 'Data da visita',
   descricao: 'Descrição',
   codBarraCaixa: 'Cód. barras da caixa MASTER (DUN)',
   codBarraProduto: 'Cód. barras do produto',
