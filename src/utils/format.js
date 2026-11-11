@@ -138,6 +138,9 @@ export const ROTULO_STATUS_FAR = {
   OUTROS: 'Outros'
 }
 
+/** Situacoes que podem ser escolhidas. "Outros" saiu da lista; FAR antiga com ele continua exibindo o rotulo. */
+export const STATUS_FAR_SELECIONAVEIS = Object.keys(ROTULO_STATUS_FAR).filter((s) => s !== 'OUTROS')
+
 export function formatarTamanho(bytes) {
   if (!bytes && bytes !== 0) return '-'
   if (bytes < 1024) return `${bytes} B`

@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import { farApi } from '../api/servicos'
 import { errosPorCampo, mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
-import { formatarData, ROTULO_STATUS_FAR } from '../utils/format'
+import { formatarData, ROTULO_STATUS_FAR, STATUS_FAR_SELECIONAVEIS } from '../utils/format'
 import Campo from '../components/Campo'
 import Modal from '../components/Modal'
 import Paginacao from '../components/Paginacao'
@@ -127,8 +127,8 @@ export default function FarListaPage() {
         <Campo label="Situação">
           <select value={filtros.status} onChange={(e) => aplicarFiltro('status', e.target.value)}>
             <option value="">Todas</option>
-            {Object.entries(ROTULO_STATUS_FAR).map(([valor, rotulo]) => (
-              <option key={valor} value={valor}>{rotulo}</option>
+            {STATUS_FAR_SELECIONAVEIS.map((valor) => (
+              <option key={valor} value={valor}>{ROTULO_STATUS_FAR[valor]}</option>
             ))}
           </select>
         </Campo>
@@ -202,6 +202,10 @@ export default function FarListaPage() {
                 <td>
                   <span className={`etiqueta ${f.status}`}>{ROTULO_STATUS_FAR[f.status]}</span>
                   {f.status === 'OUTROS' && f.statusOutros && <span className="texto-suave"> {f.statusOutros}</span>}
+                  {f.status === 'FINALIZADO_REPROVADO' && f.motivoReprovacao && (
+                    <span className="texto-suave" title={f.motivoReprovacao}> · {f.motivoReprovacao.length > 40
+                      ? `${f.motivoReprovacao.slice(0, 40)}...` : f.motivoReprovacao}</span>
+                  )}
                 </td>
                 <td>
                   {f.qtdComprovantes > 0

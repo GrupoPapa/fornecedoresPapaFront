@@ -7,10 +7,40 @@ import { ehPiso, formatarDataHora, formatarNumero, ROTULO_STATUS } from '../util
 import Campo from '../components/Campo'
 import Modal from '../components/Modal'
 import Paginacao from '../components/Paginacao'
+import CatalogoProdutos from '../components/CatalogoProdutos'
 
 const TAMANHO_PAGINA = 20
 
+/** Duas visoes: todos os produtos do fornecedor (WinThor + novos) e o acompanhamento do cadastro pelo portal. */
 export default function ProdutosPage() {
+  const { admin } = useAuth()
+  const [aba, setAba] = useState('todos')
+  const [fornecedores, setFornecedores] = useState([])
+
+  useEffect(() => {
+    if (admin) fornecedoresApi.todos().then(setFornecedores).catch(() => setFornecedores([]))
+  }, [admin])
+
+  return (
+    <>
+      <div className="abas" role="tablist">
+        <button type="button" role="tab" aria-selected={aba === 'todos'}
+                className={aba === 'todos' ? 'ativa' : undefined} onClick={() => setAba('todos')}>
+          Todos (WinThor + novos)
+        </button>
+        <button type="button" role="tab" aria-selected={aba === 'portal'}
+                className={aba === 'portal' ? 'ativa' : undefined} onClick={() => setAba('portal')}>
+          Cadastrados pelo portal
+        </button>
+      </div>
+      {aba === 'todos'
+        ? <CatalogoProdutos admin={admin} fornecedores={fornecedores} />
+        : <ProdutosPortal />}
+    </>
+  )
+}
+
+function ProdutosPortal() {
   const { admin } = useAuth()
   const navegar = useNavigate()
 
@@ -99,10 +129,10 @@ export default function ProdutosPage() {
     <>
       <div className="cabecalho-pagina">
         <div>
-          <h2>Produtos</h2>
+          <h2>Cadastrados pelo portal</h2>
           <p>{admin
             ? 'Todos os produtos, de qualquer pedido — use a aba Pedidos para analisar em lote.'
-            : 'Todos os seus produtos. Para cadastrar novos, use a aba Pedidos.'}</p>
+            : 'Produtos que você cadastrou pelo portal e a situação de cada um. Para cadastrar novos, use Cadastro de produtos.'}</p>
         </div>
         <div className="botoes">
           <button type="button" className="btn-secundario" onClick={() => exportar('xlsx')}>Exportar Excel</button>

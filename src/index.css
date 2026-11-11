@@ -367,3 +367,15 @@ td.quebra { white-space: normal; min-width: 180px; }
 .erros-planilha { max-height: 300px; overflow: auto; }
 .erros-planilha td, .erros-planilha th { font-size: 13px; }
 
+/* abas de pagina */
+.abas { display: flex; gap: 4px; border-bottom: 1px solid var(--cor-borda); margin-bottom: 16px; flex-wrap: wrap; }
+.abas button {
+  background: none; border: none; border-bottom: 2px solid transparent; padding: 10px 14px; margin-bottom: -1px;
+  font-size: 14px; font-weight: 600; color: var(--cor-texto-suave); cursor: pointer; border-radius: 0;
+}
+.abas button.ativa { color: var(--cor-primaria); border-bottom-color: var(--cor-primaria); }
+.etiqueta.origem-winthor { background: #e5f0fb; color: var(--cor-info); }
+.etiqueta.origem-portal  { background: #fff4e5; color: #9a6700; }
+tr.linha-clicavel { cursor: pointer; }
+tr.linha-clicavel:hover td { background: #fbf3f3; }
+

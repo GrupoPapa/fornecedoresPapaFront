@@ -3,7 +3,7 @@ import { useLocation, useNavigate, useParams, useSearchParams } from 'react-rout
 import { comprasApi, farApi } from '../api/servicos'
 import { errosPorCampo, mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
-import { formatarData, formatarDataHora, formatarTamanho, hojeIso, ROTULO_STATUS_FAR } from '../utils/format'
+import { formatarData, formatarDataHora, formatarTamanho, hojeIso, ROTULO_STATUS_FAR, STATUS_FAR_SELECIONAVEIS } from '../utils/format'
 import Campo from '../components/Campo'
 import Modal from '../components/Modal'
 import ProdutoAutocomplete from '../components/ProdutoAutocomplete'
@@ -17,6 +17,7 @@ function itemVazio() {
 const FORM_VAZIO = {
   dataVisita: '', itens: [], obsOcorrencia: '',
   dataAberturaFar: '', numeroFar: '', numeroNota: '', numeroPedido: '', status: 'EM_ANALISE', statusOutros: '',
+  motivoReprovacao: '',
   obsFarFornecedor: '', obsFarEmpresa: ''
 }
 
@@ -52,6 +53,7 @@ function formDoServidor(f) {
     numeroPedido: f.numeroPedido || '',
     status: f.status || 'EM_ANALISE',
     statusOutros: f.statusOutros || '',
+    motivoReprovacao: f.motivoReprovacao || '',
     obsFarFornecedor: f.obsFarFornecedor || '',
     obsFarEmpresa: f.obsFarEmpresa || ''
   }
@@ -82,6 +84,7 @@ function validar(form, comprovantes) {
   if (form.dataAberturaFar && !temNumero) e.numeroFar = 'Informe o número da FAR.'
   if (form.status.startsWith('FINALIZADO') && !temNumero) e.numeroFar = 'Para finalizar, informe o número e a data de abertura da FAR.'
   if (form.status === 'OUTROS' && !form.statusOutros.trim()) e.statusOutros = 'Descreva a situação.'
+  if (form.status === 'FINALIZADO_REPROVADO' && !form.motivoReprovacao.trim()) e.motivoReprovacao = 'Informe o motivo da reprovação.'
   if (form.status === 'FINALIZADO_APROVADO' && comprovantes === 0) e.comprovante = 'Anexe o comprovante de pagamento.'
   return e
 }
@@ -296,6 +299,7 @@ export default function FarFormPage() {
       numeroPedido: form.numeroPedido.trim() || null,
       status: form.status,
       statusOutros: form.status === 'OUTROS' ? form.statusOutros.trim() : null,
+      motivoReprovacao: form.status === 'FINALIZADO_REPROVADO' ? form.motivoReprovacao.trim() : null,
       obsFarFornecedor: form.obsFarFornecedor.trim() || null,
       obsFarEmpresa: admin ? (form.obsFarEmpresa.trim() || null) : null
     }
@@ -596,8 +600,9 @@ export default function FarFormPage() {
             </Campo>
             <Campo label="Situação" obrigatorio erro={erros.status}>
               <select value={form.status} disabled={!editavel} onChange={(e) => alterar('status', e.target.value)}>
-                {Object.entries(ROTULO_STATUS_FAR).map(([valor, rotulo]) => (
-                  <option key={valor} value={valor}>{rotulo}</option>
+                {/* "Outros" so aparece para a FAR antiga que ja estava nessa situacao */}
+                {[...STATUS_FAR_SELECIONAVEIS, ...(far?.status === 'OUTROS' ? ['OUTROS'] : [])].map((valor) => (
+                  <option key={valor} value={valor}>{ROTULO_STATUS_FAR[valor]}</option>
                 ))}
               </select>
             </Campo>
@@ -609,6 +614,15 @@ export default function FarFormPage() {
               </Campo>
             )}
           </div>
+
+          {form.status === 'FINALIZADO_REPROVADO' && (
+            <Campo label="Motivo da reprovação" obrigatorio erro={erros.motivoReprovacao}
+                   ajuda="Explique por que o processo da FAR foi reprovado.">
+              <textarea value={form.motivoReprovacao} maxLength={500} disabled={!editavel} autoFocus
+                        className={erros.motivoReprovacao ? 'invalido' : undefined}
+                        onChange={(e) => alterar('motivoReprovacao', e.target.value)} />
+            </Campo>
+          )}
 
           {form.status === 'FINALIZADO_APROVADO' && (
             <div className={`bloco-comprovante ${precisaComprovante && !comprovante ? 'faltando' : ''}`}>

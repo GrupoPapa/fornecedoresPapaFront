@@ -31,6 +31,7 @@ const ROTULO_CAMPO = {
   codigoProduto: 'Código do produto',
   qtdProdutos: 'Qtd. de produtos',
   quantidade: 'Quantidade',
+  motivoReprovacao: 'Motivo da reprovação',
   itens: 'Produtos',
   motivoId: 'Motivo',
   dataVisita: 'Data da visita',
