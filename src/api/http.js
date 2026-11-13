@@ -37,6 +37,7 @@ const ROTULO_CAMPO = {
   dataVisita: 'Data da visita',
   descricao: 'Descrição',
   codBarraCaixa: 'Cód. barras da caixa MASTER (DUN)',
+  semDun: 'Produto sem DUN',
   codBarraProduto: 'Cód. barras do produto',
   ncm: 'NCM',
   pesoLiquido: 'Peso líquido',

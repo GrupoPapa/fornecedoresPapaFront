@@ -12,7 +12,7 @@ import Modal from '../components/Modal'
 const VAZIO = {
   codigo: '', descricao: '', codBarraCaixa: '', codBarraProduto: '', ncm: '',
   pesoLiquido: '', pesoBruto: '', metroCaixa: '', metroPallet: '',
-  qtdEmbalagem: '', m2Caixa: '', m2Pallet: '', observacao: ''
+  qtdEmbalagem: '', m2Caixa: '', m2Pallet: '', observacao: '', semDun: false
 }
 
 function paraEnvio(form, tipo) {
@@ -21,7 +21,8 @@ function paraEnvio(form, tipo) {
   return {
     codigo: form.codigo.trim(),
     descricao: form.descricao.trim(),
-    codBarraCaixa: form.codBarraCaixa ? somenteDigitos(form.codBarraCaixa) : null,
+    codBarraCaixa: !form.semDun && form.codBarraCaixa ? somenteDigitos(form.codBarraCaixa) : null,
+    semDun: !!form.semDun,
     codBarraProduto: somenteDigitos(form.codBarraProduto),
     ncm: somenteDigitos(form.ncm),
     pesoLiquido: numero(form.pesoLiquido),
@@ -55,6 +56,9 @@ export default function ProdutoFormPage() {
   const [fotosPendentes, setFotosPendentes] = useState([])
   const [pedidoInfo, setPedidoInfo] = useState(null)
   const [perguntarOutro, setPerguntarOutro] = useState(false)
+  // conferencia de codigo de fabrica / EAN / DUN no portal e no WinThor: campo -> mensagem
+  const [conflitos, setConflitos] = useState({})
+  const [conferindo, setConferindo] = useState(false)
 
   // complemento WinThor (apenas para o admin, num produto ja salvo)
   const [erp, setErp] = useState(null)
@@ -108,6 +112,7 @@ export default function ProdutoFormPage() {
           codigo: p.codigo ?? '',
           descricao: p.descricao ?? '',
           codBarraCaixa: p.codBarraCaixa ?? '',
+          semDun: !!p.semDun,
           codBarraProduto: p.codBarraProduto ?? '',
           ncm: p.ncm ?? '',
           pesoLiquido: p.pesoLiquido ?? '',
@@ -127,6 +132,33 @@ export default function ProdutoFormPage() {
   function alterarErp(campo, valor) {
     setErp((e) => ({ ...e, [campo]: valor === '' ? null : valor }))
     setErrosErp((e) => ({ ...e, [campo]: undefined }))
+  }
+
+  // fornecedor da conferencia: produto salvo (pelo id), pedido aberto pelo admin ou fornecedor escolhido
+  const fornecedorDaConferencia = admin ? (pedidoInfo?.fornecedorId || fornecedorId || null) : null
+
+  async function conferirCodigos(campoAlterado) {
+    const params = {
+      codigo: form.codigo.trim() || undefined,
+      ean: somenteDigitos(form.codBarraProduto) || undefined,
+      dun: form.semDun ? undefined : (somenteDigitos(form.codBarraCaixa) || undefined)
+    }
+    if (!params.codigo && !params.ean && !params.dun) { setConflitos({}); return }
+    if (editando) params.produtoId = id
+    else if (admin && !fornecedorDaConferencia) return
+    else if (fornecedorDaConferencia) params.fornecedorId = fornecedorDaConferencia
+    setConferindo(campoAlterado)
+    try {
+      const r = await produtosApi.conferirCodigos(params)
+      const mapa = {}
+      r.conflitos.forEach((c) => { mapa[c.campo] = mapa[c.campo] ? `${mapa[c.campo]} ${c.mensagem}` : c.mensagem })
+      if (!r.winthorConsultado) mapa._aviso = 'O WinThor não respondeu agora: EAN, DUN e código de fábrica foram conferidos só com os produtos do portal.'
+      setConflitos(mapa)
+    } catch {
+      setConflitos({})
+    } finally {
+      setConferindo(false)
+    }
   }
 
   function alterar(campo, valor) {
@@ -215,6 +247,7 @@ export default function ProdutoFormPage() {
       </div>
 
       {erro && <div className="aviso erro">{erro}</div>}
+      {conflitos._aviso && <div className="aviso atencao">{conflitos._aviso}</div>}
       {mensagem && <div className="aviso sucesso">{mensagem}</div>}
       {produto?.status === 'REPROVADO' && produto?.parecer && (
         <div className="aviso atencao"><strong>Devolvido para correção:</strong> {produto.parecer}</div>
@@ -239,8 +272,11 @@ export default function ProdutoFormPage() {
           <Campo label="Código de fábrica do produto" obrigatorio erro={erros.codigo}
                  ajuda="Código que o fornecedor usa para o produto (ex.: 63238).">
             <input value={form.codigo} maxLength={30} required disabled={somenteLeitura}
-                   className={erros.codigo ? 'invalido' : undefined}
-                   onChange={(e) => alterar('codigo', e.target.value)} />
+                   className={erros.codigo || conflitos.codigo ? 'invalido' : undefined}
+                   onChange={(e) => { alterar('codigo', e.target.value); setConflitos((c) => ({ ...c, codigo: undefined })) }}
+                   onBlur={() => conferirCodigos('codigo')} />
+            {conferindo === 'codigo' && <span className="verificacao-nota nf-consultando">Conferindo no WinThor...</span>}
+            {conflitos.codigo && <span className="verificacao-nota nf-erro">{conflitos.codigo}</span>}
           </Campo>
 
           <Campo label="Classificação fiscal (NCM)" obrigatorio erro={erros.ncm}
@@ -261,15 +297,31 @@ export default function ProdutoFormPage() {
           <Campo label="Cód. barras do produto (EAN)" obrigatorio erro={erros.codBarraProduto}
                  ajuda="GTIN de 8, 12, 13 ou 14 dígitos, como impresso na embalagem (ex.: 7897451432381).">
             <input value={form.codBarraProduto} maxLength={14} inputMode="numeric" required disabled={somenteLeitura}
-                   className={erros.codBarraProduto ? 'invalido' : undefined}
-                   onChange={(e) => alterar('codBarraProduto', somenteDigitos(e.target.value))} />
+                   className={erros.codBarraProduto || conflitos.codBarraProduto ? 'invalido' : undefined}
+                   onChange={(e) => { alterar('codBarraProduto', somenteDigitos(e.target.value)); setConflitos((c) => ({ ...c, codBarraProduto: undefined })) }}
+                   onBlur={() => conferirCodigos('codBarraProduto')} />
+            {conferindo === 'codBarraProduto' && <span className="verificacao-nota nf-consultando">Conferindo no WinThor...</span>}
+            {conflitos.codBarraProduto && <span className="verificacao-nota nf-erro">{conflitos.codBarraProduto}</span>}
           </Campo>
 
-          <Campo label="Cód. barras da caixa MASTER (DUN)" erro={erros.codBarraCaixa}
-                 ajuda="Opcional (DUN-14). Deixe em branco se a caixa master não tiver código próprio.">
-            <input value={form.codBarraCaixa} maxLength={14} inputMode="numeric" disabled={somenteLeitura}
-                   className={erros.codBarraCaixa ? 'invalido' : undefined}
-                   onChange={(e) => alterar('codBarraCaixa', somenteDigitos(e.target.value))} />
+          <Campo label="Cód. barras da caixa MASTER (DUN)" obrigatorio={!form.semDun} erro={erros.codBarraCaixa}
+                 ajuda={form.semDun ? 'Marcado como produto sem DUN.' : 'DUN-14 da caixa master, diferente do EAN do produto.'}>
+            <input value={form.semDun ? '' : form.codBarraCaixa} maxLength={14} inputMode="numeric"
+                   required={!form.semDun} disabled={somenteLeitura || form.semDun}
+                   placeholder={form.semDun ? 'Sem DUN' : undefined}
+                   className={erros.codBarraCaixa || conflitos.codBarraCaixa ? 'invalido' : undefined}
+                   onChange={(e) => { alterar('codBarraCaixa', somenteDigitos(e.target.value)); setConflitos((c) => ({ ...c, codBarraCaixa: undefined })) }}
+                   onBlur={() => conferirCodigos('codBarraCaixa')} />
+            <label className="marcar-sem-dun">
+              <input type="checkbox" checked={!!form.semDun} disabled={somenteLeitura}
+                     onChange={(e) => {
+                       alterar('semDun', e.target.checked)
+                       if (e.target.checked) { alterar('codBarraCaixa', ''); setConflitos((c) => ({ ...c, codBarraCaixa: undefined })) }
+                     }} />
+              Este produto não tem DUN (a caixa master não tem código de barras próprio)
+            </label>
+            {conferindo === 'codBarraCaixa' && <span className="verificacao-nota nf-consultando">Conferindo no WinThor...</span>}
+            {conflitos.codBarraCaixa && <span className="verificacao-nota nf-erro">{conflitos.codBarraCaixa}</span>}
           </Campo>
 
           {piso ? (

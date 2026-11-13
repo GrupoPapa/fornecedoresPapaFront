@@ -10,6 +10,8 @@ export const authApi = {
 export const produtosApi = {
   listar: (params) => http.get('/api/produtos', { params }).then((r) => r.data),
   resumo: () => http.get('/api/produtos/resumo').then((r) => r.data),
+  conferirCodigos: (params) =>
+    http.get('/api/produtos/conferir-codigos', { params, timeout: 20000 }).then((r) => r.data),
   catalogo: (fornecedorId) =>
     http.get('/api/produtos/catalogo', { params: fornecedorId ? { fornecedorId } : {}, timeout: 60000 }).then((r) => r.data),
   buscar: (id) => http.get(`/api/produtos/${id}`).then((r) => r.data),

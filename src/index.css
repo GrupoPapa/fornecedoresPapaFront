@@ -379,3 +379,7 @@ td.quebra { white-space: normal; min-width: 180px; }
 tr.linha-clicavel { cursor: pointer; }
 tr.linha-clicavel:hover td { background: #fbf3f3; }
 
+/* cadastro de produto: opcao "sem DUN" */
+.marcar-sem-dun { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; font-weight: 500; margin-top: 6px; cursor: pointer; }
+.marcar-sem-dun input { width: 16px; height: 16px; margin: 2px 0 0; flex: 0 0 auto; }
+
