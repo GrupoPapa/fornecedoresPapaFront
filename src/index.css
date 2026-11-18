@@ -62,7 +62,9 @@ a { color: var(--cor-info); }
 }
 .menu a.ativo { color: var(--cor-primaria); border-bottom-color: var(--cor-primaria); }
 
-.conteudo { flex: 1; padding: 20px; max-width: 1280px; width: 100%; margin: 0 auto; }
+.conteudo { flex: 1; padding: 20px 24px; max-width: 1720px; width: 100%; margin: 0 auto; }
+/* formularios continuam em coluna legivel mesmo com a pagina larga */
+.conteudo > .cartao.formulario { max-width: 1280px; }
 
 .cabecalho-pagina {
   display: flex; justify-content: space-between; align-items: center;
@@ -123,7 +125,7 @@ table { width: 100%; border-collapse: collapse; font-size: 13px; }
 th, td { padding: 10px 12px; text-align: left; border-bottom: 1px solid var(--cor-borda); white-space: nowrap; }
 th { background: #fafbfc; font-weight: 600; color: var(--cor-texto-suave); text-transform: uppercase; font-size: 11px; letter-spacing: .3px; }
 tbody tr:hover { background: #fbfcfd; }
-td.acoes { display: flex; gap: 6px; }
+td.acoes { display: flex; gap: 6px; flex-wrap: wrap; }
 .vazio { padding: 32px; text-align: center; color: var(--cor-texto-suave); }
 
 .etiqueta { display: inline-block; padding: 3px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; }
