@@ -7,6 +7,8 @@ const PADRAO_GTIN = [['8', 'GTIN-8 (EAN-8)'], ['12', 'GTIN-12 (UPC-A)'],
                      ['13', 'GTIN-13 (EAN-13)'], ['14', 'GTIN-14 (DUN-14)']]
 const TIPO_CARGA = [['G', 'Geral (G)'], ['E', 'Especial (E)'], ['A', 'Ambos (A)']]
 const LOCAL_SEPARACAO = [['I', 'Interno (I)'], ['EF', 'Externo Ferro (EF)'], ['EG', 'Externo Geral (EG)']]
+// departamento de piso/revestimento: separacao sempre no externo geral (o backend tambem forca)
+const DEPTO_PISO = 13
 // mesmas opcoes da rotina 203 do WinThor
 const NATUREZA_PRODUTO = [['ME', 'Medicamentos (ME)'], ['OT', 'Outros (OT)'],
                           ['SS', 'Serviços (SS)'], ['VC', 'Veículo (VC)']]
@@ -23,7 +25,7 @@ function Bloco({ titulo, children }) {
 /** Todos os campos obrigatorios do WinThor, na ordem da tela. */
 const CAMPOS_OBRIGATORIOS = [
   'descricao', 'codMarca', 'codEpto', 'codSec', 'codFab', 'classificacaoFiscal', 'codNcmEx',
-  'embalagem', 'unidade', 'qtUnit', 'unidadeMaster', 'qtUnitCx', 'multiplo',
+  'embalagem', 'unidade', 'qtUnit', 'unidadeMaster', 'qtUnitCx', 'multiplo', 'multiploCompras',
   'pesoLiq', 'pesoBruto', 'codAuxiliar', 'gtinCodAuxiliar',
   'sugVenda', 'pComExt1', 'pComInt1', 'pComRep1',
   'revenda', 'temRepos', 'cestaBasicaLegis', 'aceitaVendaFracao',
@@ -133,7 +135,12 @@ export default function CamposWinthor({
           <Lista campo="codMarca" label="Marca" itens={marcas} valor={form.codMarca}
                  aoAlterar={aoAlterar} erro={erros.codMarca} desabilitado={travado} />
           <Lista campo="codEpto" label="Departamento" itens={departamentos} valor={form.codEpto}
-                 aoAlterar={(c, v) => { aoAlterar('codEpto', v); aoAlterar('codSec', '') }}
+                 aoAlterar={(c, v) => {
+                   aoAlterar('codEpto', v)
+                   aoAlterar('codSec', '')
+                   // piso/revestimento: local de separacao fica EG automaticamente
+                   if (Number(v) === DEPTO_PISO) aoAlterar('localSeparacao', 'EG')
+                 }}
                  erro={erros.codEpto} desabilitado={travado} />
           <Lista campo="codSec" label="Seção" itens={secoes} valor={form.codSec}
                  aoAlterar={aoAlterar} erro={erros.codSec} desabilitado={travado}
@@ -157,6 +164,9 @@ export default function CamposWinthor({
         <div className="grade">
           <Texto {...p('qtUnitCx', { label: 'Qt. por caixa (QTUNITCX)', tipo: 'number', passo: '0.01' })} />
           <Texto {...p('multiplo', { label: 'Múltiplo', tipo: 'number', passo: '0.000001' })} />
+          <Texto {...p('multiploCompras', { label: 'Múltiplo de compras', tipo: 'number',
+                                            passo: '0.000001',
+                                            ajuda: 'PCPRODUT.MULTIPLOCOMPRAS. Padrão 1.' })} />
           <Texto {...p('pesoLiq', { label: 'Peso líquido', tipo: 'number', passo: '0.000001' })} />
           <Texto {...p('pesoBruto', { label: 'Peso bruto', tipo: 'number', passo: '0.000001' })} />
         </div>
@@ -189,7 +199,13 @@ export default function CamposWinthor({
       <Bloco titulo="Logística e integrações">
         <div className="grade">
           <Opcoes {...p('tipoCargaProduto', { label: 'Tipo carga produto', opcoes: TIPO_CARGA })} />
-          <Opcoes {...p('localSeparacao', { label: 'Local de separação', opcoes: LOCAL_SEPARACAO })} />
+          <Opcoes {...p('localSeparacao', {
+            label: 'Local de separação', opcoes: LOCAL_SEPARACAO,
+            desabilitado: travado || Number(form.codEpto) === DEPTO_PISO,
+            ajuda: Number(form.codEpto) === DEPTO_PISO
+              ? 'Departamento 13 (piso/revestimento): sempre Externo Geral.'
+              : undefined
+          })} />
           <Opcoes {...p('naturezaProduto', { label: 'Natureza do produto',
                                              opcoes: NATUREZA_PRODUTO, ajuda: 'Padrão: Outros (OT)' })} />
         </div>

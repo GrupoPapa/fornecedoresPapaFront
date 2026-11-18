@@ -81,6 +81,7 @@ export default function PedidoDetalhePage() {
   const erpCarregado = !podeAprovar || (pedido.itens || []).every((i) => statusErp[i.id] !== undefined)
   const itensPendentesErp = podeAprovar
     ? (pedido.itens || []).filter((i) => {
+        if (i.status === 'REPROVADO') return false   // com ressalva: fica de fora da aprovacao
         const e = statusErp[i.id]
         return !e || (!e.completo && !e.integrado)
       })
@@ -119,10 +120,11 @@ export default function PedidoDetalhePage() {
           só nesse momento ele chega para a nossa equipe.
         </div>
       )}
-      {emAnalise && itensComRessalva.length > 0 && (
+      {podeAprovar && itensComRessalva.length > 0 && (
         <div className="aviso atencao">
-          {itensComRessalva.length} item(ns) com ressalva. Para aprovar o pedido, retire as ressalvas;
-          para devolver ao fornecedor, use <strong>Devolver pedido</strong>.
+          {itensComRessalva.length} item(ns) com ressalva. Eles ficam <strong>de fora</strong> da
+          aprovação e seguem para correção — os demais são aprovados normalmente.
+          Para trazer um de volta, use <strong>Retirar ressalva</strong> na linha dele.
         </div>
       )}
       {podeAprovar && erpCarregado && itensPendentesErp.length > 0 && (
@@ -131,6 +133,8 @@ export default function PedidoDetalhePage() {
           Todos os campos do WinThor são obrigatórios para aprovar. Use <strong>Dados WinThor</strong>
           {' '}em cada item e preencha os campos com fundo avermelhado.
           {' '}Pendente(s): {itensPendentesErp.map((i) => i.codigo).join(', ')}.
+          {' '}Se preferir aprovar o resto agora, marque <strong>Ressalva</strong> nesses itens —
+          eles ficam de fora e voltam para o fornecedor corrigir.
         </div>
       )}
 
@@ -326,13 +330,23 @@ export default function PedidoDetalhePage() {
                       Gravar no WinThor
                     </button>
                   )}
-                  {emAnalise && item.status !== 'REPROVADO' && (
+                  {podeAprovar && item.status !== 'APROVADO' && item.status !== 'REPROVADO' && (
+                    <button type="button" className="btn-sucesso btn-pequeno"
+                            onClick={() => {
+                              if (window.confirm(`Aprovar o item ${item.codigo}?`)) {
+                                acao(() => produtosApi.aprovar(item.id, null), 'Item aprovado.')
+                              }
+                            }}>
+                      Aprovar
+                    </button>
+                  )}
+                  {podeAprovar && item.status !== 'REPROVADO' && (
                     <button type="button" className="btn-perigo btn-pequeno"
                             onClick={() => setRessalva({ item, parecer: '' })}>
                       Ressalva
                     </button>
                   )}
-                  {admin && item.status === 'REPROVADO' && pedido.status === 'ENVIADO' && (
+                  {admin && item.status === 'REPROVADO' && podeAprovar && (
                     <button type="button" className="btn-secundario btn-pequeno"
                             onClick={() => acao(() => produtosApi.retirarRessalva(item.id),
                                                 'Ressalva retirada.')}>

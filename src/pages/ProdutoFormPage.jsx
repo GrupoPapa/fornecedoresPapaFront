@@ -166,8 +166,19 @@ export default function ProdutoFormPage() {
     setErros((e) => ({ ...e, [campo]: undefined }))
   }
 
+  // campos de identificacao com conflito: o produto ja existe no portal ou no WinThor
+  const CAMPOS_IDENTIFICACAO = ['codigo', 'codBarraProduto', 'codBarraCaixa']
+  const temConflito = CAMPOS_IDENTIFICACAO.some((c) => Boolean(conflitos[c]))
+
   async function salvar(e, enviarDepois = false) {
     e.preventDefault()
+    // trava: produto ja cadastrado (portal ou WinThor) nao pode ser salvo
+    if (temConflito) {
+      setErro('Este produto já está cadastrado. Corrija os códigos destacados em vermelho '
+              + 'antes de salvar — assim evitamos cadastro duplicado.')
+      window.scrollTo({ top: 0, behavior: 'smooth' })
+      return
+    }
     setErro(''); setMensagem(''); setErros({})
     setSalvando(true)
     try {
@@ -182,6 +193,7 @@ export default function ProdutoFormPage() {
           ...erp,
           codMarca: numero(erp.codMarca), codEpto: numero(erp.codEpto), codSec: numero(erp.codSec),
           qtUnit: numero(erp.qtUnit), qtUnitCx: numero(erp.qtUnitCx), multiplo: numero(erp.multiplo),
+          multiploCompras: numero(erp.multiploCompras),
           pesoLiq: numero(erp.pesoLiq), pesoBruto: numero(erp.pesoBruto),
           sugVenda: numero(erp.sugVenda), pComExt1: numero(erp.pComExt1),
           pComInt1: numero(erp.pComInt1), pComRep1: numero(erp.pComRep1),
@@ -248,6 +260,13 @@ export default function ProdutoFormPage() {
 
       {erro && <div className="aviso erro">{erro}</div>}
       {conflitos._aviso && <div className="aviso atencao">{conflitos._aviso}</div>}
+      {temConflito && (
+        <div className="aviso erro">
+          <strong>Produto já cadastrado.</strong> Para não duplicar o cadastro, o salvamento fica
+          bloqueado enquanto o código de fábrica, o EAN ou o DUN já existirem em outro produto —
+          veja o detalhe em vermelho no campo correspondente.
+        </div>
+      )}
       {mensagem && <div className="aviso sucesso">{mensagem}</div>}
       {produto?.status === 'REPROVADO' && produto?.parecer && (
         <div className="aviso atencao"><strong>Devolvido para correção:</strong> {produto.parecer}</div>
@@ -408,16 +427,22 @@ export default function ProdutoFormPage() {
             Voltar
           </button>
           {!somenteLeitura && pedidoId && (
-            <button type="submit" className="btn-primario" disabled={salvando}>
+            <button type="submit" className="btn-primario"
+                    disabled={salvando || temConflito || Boolean(conferindo)}
+                    title={temConflito ? 'Produto já cadastrado — corrija os códigos destacados.' : undefined}>
               {salvando ? 'Salvando...' : 'Salvar produto'}
             </button>
           )}
           {!somenteLeitura && !pedidoId && (
             <>
-              <button type="submit" className="btn-secundario" disabled={salvando}>
+              <button type="submit" className="btn-secundario"
+                      disabled={salvando || temConflito || Boolean(conferindo)}
+                      title={temConflito ? 'Produto já cadastrado — corrija os códigos destacados.' : undefined}>
                 {salvando ? 'Salvando...' : 'Salvar rascunho'}
               </button>
-              <button type="button" className="btn-primario" disabled={salvando}
+              <button type="button" className="btn-primario"
+                      disabled={salvando || temConflito || Boolean(conferindo)}
+                      title={temConflito ? 'Produto já cadastrado — corrija os códigos destacados.' : undefined}
                       onClick={(e) => salvar(e, true)}>
                 Salvar e enviar para análise
               </button>
