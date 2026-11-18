@@ -15,6 +15,13 @@ const VAZIO = {
   qtdEmbalagem: '', m2Caixa: '', m2Pallet: '', observacao: '', semDun: false
 }
 
+/** Corta o que o usuario digitar depois da segunda casa decimal. */
+function duasCasas(valor) {
+  const v = String(valor).replace(',', '.')
+  const ponto = v.indexOf('.')
+  return ponto >= 0 ? v.slice(0, ponto + 3) : v
+}
+
 function paraEnvio(form, tipo) {
   const numero = (v) => (v === '' || v === null || v === undefined ? null : Number(String(v).replace(',', '.')))
   const piso = ehPiso(tipo)
@@ -382,9 +389,9 @@ export default function ProdutoFormPage() {
 
           {piso ? (
             <Campo label={rotulos.pallet} erro={erros.m2Pallet} ajuda={rotulos.palletAjuda}>
-              <input type="number" min="0" step="0.0001" value={form.m2Pallet} disabled={somenteLeitura}
+              <input type="number" min="0" step="0.01" value={form.m2Pallet} disabled={somenteLeitura}
                      className={erros.m2Pallet ? 'invalido' : undefined}
-                     onChange={(e) => alterar('m2Pallet', e.target.value)} />
+                     onChange={(e) => alterar('m2Pallet', duasCasas(e.target.value))} />
             </Campo>
           ) : rotulos.mostrarMetroPallet ? (
             <Campo label={rotulos.pallet} erro={erros.metroPallet} ajuda={rotulos.palletAjuda}>

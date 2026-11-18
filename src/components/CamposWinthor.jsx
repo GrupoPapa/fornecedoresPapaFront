@@ -165,8 +165,8 @@ export default function CamposWinthor({
           <Texto {...p('qtUnitCx', { label: 'Qt. por caixa (QTUNITCX)', tipo: 'number', passo: '0.01' })} />
           <Texto {...p('multiplo', { label: 'Múltiplo', tipo: 'number', passo: '0.000001' })} />
           <Texto {...p('multiploCompras', { label: 'Múltiplo de compras', tipo: 'number',
-                                            passo: '0.000001',
-                                            ajuda: 'PCPRODUT.MULTIPLOCOMPRAS. Padrão 1.' })} />
+                                            passo: '0.01',
+                                            ajuda: 'PCPRODUT.MULTIPLOCOMPRAS. Vem do m² por pallet informado pelo fornecedor.' })} />
           <Texto {...p('pesoLiq', { label: 'Peso líquido', tipo: 'number', passo: '0.000001' })} />
           <Texto {...p('pesoBruto', { label: 'Peso bruto', tipo: 'number', passo: '0.000001' })} />
         </div>
