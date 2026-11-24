@@ -9,6 +9,7 @@ import {
 } from '../utils/format'
 import Campo from '../components/Campo'
 import Modal from '../components/Modal'
+import { UltimaEntrada } from '../components/SugestoesSystock'
 
 const LIMITE_CATALOGO = 2000
 
@@ -55,6 +56,11 @@ function itemDoServidor(i) {
     precoUnitario: decimalParaTexto(i.precoUnitario),
     observacao: i.observacao || '',
     divergencia: i.divergencia,
+    qtdeSugerida: i.qtdeSugerida,
+    qtdeSystock: i.qtdeSystock,
+    precoSystock: i.precoSystock,
+    ultimaEntrada: i.ultimaEntrada,
+    fornecedorProduto: i.fornecedorProduto,
     id: i.id
   }
 }
@@ -320,7 +326,10 @@ export default function PedidoCompraPage() {
   const mostrarComparativo = admin && !!comparativo && !editavel
   const itensDivergentes = itens.filter((i) => i.divergencia)
   const nomeFilial = (cod) => filiais.find((f) => f.codigo === cod)?.nome
-  const colunasItens = 7 + (mostrarComparativo ? 3 : 0) + (editavel ? 1 : 0)
+  const mostrarSugerida = !!pedido?.systockId
+  const mostrarUltEntrada = !mostrarComparativo
+  const colunasAntesTotal = 5 + (mostrarSugerida ? 1 : 0) + (mostrarUltEntrada ? 1 : 0)
+  const colunasItens = 7 + (mostrarSugerida ? 1 : 0) + (mostrarUltEntrada ? 1 : 0) + (mostrarComparativo ? 3 : 0) + (editavel ? 1 : 0)
 
   return (
     <div className="pedido-compra">
@@ -519,6 +528,8 @@ export default function PedidoCompraPage() {
                 <th>#</th>
                 <th>Produto</th>
                 <th>Embalagem</th>
+                {mostrarUltEntrada && <th className="numero" title="Última nota de entrada do produto no WinThor">Últ. entrada</th>}
+                {mostrarSugerida && <th className="numero" title="Quantidade que o Systock calculou">Qtde. sugerida</th>}
                 <th className="numero">Quantidade</th>
                 <th className="numero">Preço unit.</th>
                 <th className="numero">Total</th>
@@ -548,15 +559,29 @@ export default function PedidoCompraPage() {
                         {!i.codProdErp && i.produtoStatus && (
                           <span className="texto-suave"> · cadastro {ROTULO_STATUS[i.produtoStatus]?.toLowerCase()}</span>
                         )}
+                        {i.fornecedorProduto && (
+                          <span className="texto-suave" title="Fornecedor do mesmo grupo no WinThor (principal/secundário)"> · fornecedor {i.fornecedorProduto}</span>
+                        )}
                         {i.divergencia && <span className="divergencia">⚠ {i.divergencia}</span>}
                       </td>
                       <td>{[i.embalagem, i.unidade].filter(Boolean).join(' / ') || '-'}</td>
+                      {mostrarUltEntrada && (
+                        <td className="numero">
+                          {i.id ? <UltimaEntrada ultima={i.ultimaEntrada} preco={pr || null} /> : <span className="texto-suave">ao salvar</span>}
+                        </td>
+                      )}
+                      {mostrarSugerida && (
+                        <td className="numero">{i.qtdeSugerida == null ? '-' : formatarNumero(i.qtdeSugerida)}</td>
+                      )}
                       <td className="numero">
                         {editavel
                           ? <input className="numero" inputMode="decimal" value={i.quantidade} placeholder="0"
                                    aria-label={`Quantidade de ${i.descricao}`}
                                    onChange={(e) => alterarItem(i.chave, 'quantidade', e.target.value)} />
                           : formatarNumero(q, 6)}
+                        {i.qtdeSystock != null && Number(i.qtdeSystock) !== q && (
+                          <span className="valor-systock">Systock: {formatarNumero(i.qtdeSystock)}</span>
+                        )}
                       </td>
                       <td className="numero">
                         {editavel
@@ -564,6 +589,9 @@ export default function PedidoCompraPage() {
                                    aria-label={`Preço de ${i.descricao}`}
                                    onChange={(e) => alterarItem(i.chave, 'precoUnitario', e.target.value)} />
                           : formatarMoeda(pr, 2)}
+                        {i.precoSystock != null && Number(i.precoSystock) !== pr && (
+                          <span className="valor-systock">Systock: {formatarMoeda(i.precoSystock)}</span>
+                        )}
                       </td>
                       <td className="numero">{q && pr ? formatarMoeda(q * pr) : '-'}</td>
                       {mostrarComparativo && (
@@ -634,9 +662,9 @@ export default function PedidoCompraPage() {
               })}
               {itens.length > 0 && (
                 <tr className="linha-total">
-                  <td colSpan={5} className="numero">Total do pedido</td>
+                  <td colSpan={colunasAntesTotal} className="numero">Total do pedido</td>
                   <td className="numero">{formatarMoeda(totalPedido)}</td>
-                  <td colSpan={colunasItens - 6}></td>
+                  <td colSpan={colunasItens - colunasAntesTotal - 1}></td>
                 </tr>
               )}
             </tbody>

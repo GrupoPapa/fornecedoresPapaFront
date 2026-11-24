@@ -20,7 +20,7 @@ const ROTULO_STATUS = {
 const CLASSE_STATUS = { AB: 'RASCUNHO', CT: 'EM_ANALISE', PARA_EXPORTACAO: 'ENVIADO', FN: 'APROVADO' }
 
 /** Valor da ultima entrada no WinThor, com a data e quanto o preco da sugestao difere dele. */
-function UltimaEntrada({ ultima, preco }) {
+export function UltimaEntrada({ ultima, preco }) {
   if (!ultima) return <span className="texto-suave">Sem entrada</span>
   const valor = Number(ultima.valorUnitario)
   const dif = valor > 0 && preco != null ? ((Number(preco) - valor) / valor) * 100 : null
@@ -31,7 +31,7 @@ function UltimaEntrada({ ultima, preco }) {
     ultima.quantidade != null && `qtde. ${formatarNumero(ultima.quantidade)}`
   ].filter(Boolean).join(' · ')
   return (
-    <span title={detalhe || undefined}>
+    <span title={['Data = emissão do pedido de compra da última entrada', detalhe].filter(Boolean).join('\n')}>
       {formatarMoeda(ultima.valorUnitario)}
       <span className="ultima-entrada-detalhe">
         {formatarData(ultima.data)}
@@ -246,8 +246,9 @@ export default function SugestoesSystock({ admin, fornecedores }) {
                         <thead>
                           <tr>
                             <th>Cód. interno</th><th>Cód. fábrica</th><th>Descrição</th><th>Embalagem</th>
+                            <th className="numero">Últ. entrada</th>
                             <th className="numero">Qtde. sugerida</th><th className="numero">Qtde.</th>
-                            <th className="numero">Preço</th><th className="numero">Últ. entrada</th><th className="numero">Total</th>
+                            <th className="numero">Preço atual</th><th className="numero">Total</th>
                           </tr>
                         </thead>
                         <tbody>
@@ -263,10 +264,10 @@ export default function SugestoesSystock({ admin, fornecedores }) {
                                 )}
                               </td>
                               <td>{i.embalagem || '-'}</td>
+                              <td className="numero"><UltimaEntrada ultima={i.ultimaEntrada} preco={i.preco} /></td>
                               <td className="numero">{i.quantidadeSugerida == null ? '-' : formatarNumero(i.quantidadeSugerida)}</td>
                               <td className="numero">{formatarNumero(i.quantidade)}</td>
                               <td className="numero">{formatarMoeda(i.preco)}</td>
-                              <td className="numero"><UltimaEntrada ultima={i.ultimaEntrada} preco={i.preco} /></td>
                               <td className="numero">{formatarMoeda(i.valorTotal)}</td>
                             </tr>
                           ))}
