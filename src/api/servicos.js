@@ -140,6 +140,13 @@ export const comprasApi = {
     http.post(`/api/admin/pedidos-compra/${id}/voltar-analise`).then((r) => r.data)
 }
 
+/** Sugestoes de compra do Systock (o portal so le o Systock). */
+export const systockApi = {
+  sugestoes: (params) => http.get('/api/systock/pedidos-compra', { params, timeout: 60000 }).then((r) => r.data),
+  trazerParaPortal: (idSystock) =>
+    http.post(`/api/systock/pedidos-compra/${idSystock}/importar`, null, { timeout: 60000 }).then((r) => r.data)
+}
+
 /** Monta o corpo multipart da FAR: 'dados' em JSON + comprovante opcional. */
 function corpoFar(dados, comprovante) {
   const corpo = new FormData()

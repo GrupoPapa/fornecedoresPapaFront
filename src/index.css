@@ -385,3 +385,13 @@ tr.linha-clicavel:hover td { background: #fbf3f3; }
 .marcar-sem-dun { display: flex; align-items: flex-start; gap: 8px; font-size: 13px; font-weight: 500; margin-top: 6px; cursor: pointer; }
 .marcar-sem-dun input { width: 16px; height: 16px; margin: 2px 0 0; flex: 0 0 auto; }
 
+
+/* sugestoes do Systock */
+tr.linha-detalhe > td { background: #fafbfc; padding: 10px 14px 14px; }
+.tabela-interna { width: 100%; border-collapse: collapse; font-size: 13px; background: #fff;
+  border: 1px solid var(--cor-borda); border-radius: var(--raio); }
+.tabela-interna th, .tabela-interna td { padding: 6px 8px; border-bottom: 1px solid var(--cor-borda); text-align: left; }
+.tabela-interna th.numero, .tabela-interna td.numero { text-align: right; }
+.ultima-entrada-detalhe { display: block; font-size: 11px; color: var(--cor-texto-suave); white-space: nowrap; }
+.ultima-entrada-detalhe .dif-maior { color: var(--cor-erro); font-weight: 600; }
+.ultima-entrada-detalhe .dif-menor { color: var(--cor-sucesso); font-weight: 600; }

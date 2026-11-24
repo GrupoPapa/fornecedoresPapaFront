@@ -332,6 +332,9 @@ export default function PedidoCompraPage() {
             {pedido
               ? <span className={`etiqueta ${pedido.status}`}>{ROTULO_STATUS_COMPRA[pedido.status]}</span>
               : 'Selecione os produtos abaixo e informe quantidade e preço.'}
+            {pedido?.systockId && (
+              <span className="texto-suave"> · trazido da sugestão Systock nº <strong>{pedido.systockId}</strong></span>
+            )}
           </p>
         </div>
         <button type="button" className="btn-secundario" onClick={() => navegar('/compras')}>Voltar</button>

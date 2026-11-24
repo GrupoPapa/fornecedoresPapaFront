@@ -177,7 +177,7 @@ export default function PedidoDetalhePage() {
                               : 'Conferindo os dados do WinThor...')
                           : undefined}
                         onClick={() => setAnalise({ aprovado: true, parecer: '' })}>
-                  Aprovar pedido
+                  Aprovar cadastro de produto
                 </button>
                 {emAnalise && (
                   <button type="button" className="btn-perigo"

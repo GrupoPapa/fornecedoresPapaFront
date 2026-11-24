@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { comprasApi, fornecedoresApi, importacaoApi } from '../api/servicos'
 import ImportarPlanilha from '../components/ImportarPlanilha'
 import { mensagemErro } from '../api/http'
@@ -7,8 +7,43 @@ import { useAuth } from '../context/AuthContext'
 import { formatarData, formatarDataHora, formatarMoeda, ROTULO_STATUS_COMPRA } from '../utils/format'
 import Campo from '../components/Campo'
 import Paginacao from '../components/Paginacao'
+import SugestoesSystock from '../components/SugestoesSystock'
 
+/** Pedidos de compra do portal e sugestoes de compra vindas do Systock. */
 export default function PedidosCompraPage() {
+  const { admin } = useAuth()
+  const [parametros, setParametros] = useSearchParams()
+  const aba = parametros.get('aba') === 'systock' ? 'systock' : 'portal'
+  const [fornecedores, setFornecedores] = useState([])
+
+  useEffect(() => {
+    if (admin) fornecedoresApi.todos().then(setFornecedores).catch(() => setFornecedores([]))
+  }, [admin])
+
+  function trocar(nova) {
+    setParametros(nova === 'systock' ? { aba: 'systock' } : {}, { replace: true })
+  }
+
+  return (
+    <>
+      <div className="abas" role="tablist">
+        <button type="button" role="tab" aria-selected={aba === 'portal'}
+                className={aba === 'portal' ? 'ativa' : undefined} onClick={() => trocar('portal')}>
+          Pedidos do portal
+        </button>
+        <button type="button" role="tab" aria-selected={aba === 'systock'}
+                className={aba === 'systock' ? 'ativa' : undefined} onClick={() => trocar('systock')}>
+          Sugestões do Systock
+        </button>
+      </div>
+      {aba === 'systock'
+        ? <SugestoesSystock admin={admin} fornecedores={fornecedores} />
+        : <PedidosPortal />}
+    </>
+  )
+}
+
+function PedidosPortal() {
   const { admin } = useAuth()
   const navegar = useNavigate()
 
@@ -177,7 +212,10 @@ export default function PedidosCompraPage() {
             )}
             {!carregando && dados.conteudo.map((p) => (
               <tr key={p.id}>
-                <td><strong>{p.numero}</strong></td>
+                <td>
+                  <strong>{p.numero}</strong>
+                  {p.systockId && <span className="etiqueta origem-portal" title="Trazido de uma sugestão do Systock"> Systock {p.systockId}</span>}
+                </td>
                 {admin && <td style={{ whiteSpace: 'normal', minWidth: 200 }}>{p.fornecedorNome}</td>}
                 <td className="numero">{p.qtdItens}</td>
                 <td className="numero">{formatarMoeda(p.valorTotal)}</td>
