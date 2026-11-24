@@ -258,6 +258,9 @@ export default function SugestoesSystock({ admin, fornecedores }) {
                               <td className="quebra">
                                 {i.descricao || <span className="texto-suave">Produto não encontrado no WinThor</span>}
                                 {i.foraDoFornecedor && <span className="verificacao-nota nf-aviso"> · no WinThor é de outro fornecedor</span>}
+                                {!i.foraDoFornecedor && i.fornecedorProduto && (
+                                  <span className="texto-suave" title="Fornecedor do mesmo grupo no WinThor (principal/secundário)"> · fornecedor {i.fornecedorProduto}</span>
+                                )}
                               </td>
                               <td>{i.embalagem || '-'}</td>
                               <td className="numero">{i.quantidadeSugerida == null ? '-' : formatarNumero(i.quantidadeSugerida)}</td>
