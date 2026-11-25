@@ -92,6 +92,8 @@ export default function PedidoCompraPage() {
   const [situacao, setSituacao] = useState(null)
   const [modal, setModal] = useState(null) // {tipo, parecer, codFilial, forcar}
   const [geraSugestao, setGeraSugestao] = useState(false)
+  const [padroes, setPadroes] = useState(null) // { filialPadrao, prazoEntregaDias }
+  const [enviado, setEnviado] = useState(null) // pedido recem-enviado (aviso)
 
   const editavel = novo || !!pedido?.editavel
   const fornecedorId = admin ? (pedido?.fornecedorId || fornecedorParam) : null
@@ -135,8 +137,30 @@ export default function PedidoCompraPage() {
 
   useEffect(() => {
     comprasApi.filiais().then(setFiliais).catch(() => setFiliais([]))
-    comprasApi.configuracao().then((c) => setGeraSugestao(!!c.gerarSugestaoHabilitada)).catch(() => {})
+    comprasApi.configuracao().then((c) => {
+      setGeraSugestao(!!c.gerarSugestaoHabilitada)
+      setPadroes({ filialPadrao: c.filialPadrao || '', prazoEntregaDias: c.prazoEntregaDias ?? 15 })
+    }).catch(() => setPadroes({ filialPadrao: '', prazoEntregaDias: 15 }))
   }, [])
+
+  // pedido novo ou rascunho ainda sem filial/previsao: ja vem com a filial padrao e hoje + N dias
+  useEffect(() => {
+    if (!padroes || carregando || !editavel || filiais.length === 0) return
+    if (!novo && !pedido) return
+    const mudancas = {}
+    if (!form.codFilial && !filialFixa && padroes.filialPadrao
+        && filiais.some((f) => f.codigo === padroes.filialPadrao)) {
+      mudancas.codFilial = padroes.filialPadrao
+    }
+    if (!form.dataPrevisaoEntrega) {
+      const d = new Date()
+      d.setDate(d.getDate() + Number(padroes.prazoEntregaDias || 0))
+      mudancas.dataPrevisaoEntrega = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`
+    }
+    if (Object.keys(mudancas).length === 0) return
+    setForm((f) => ({ ...f, ...mudancas }))
+    if (!novo) setSujo(true) // rascunho existente: grava os valores ao salvar/enviar
+  }, [padroes, carregando, editavel, filiais, novo, pedido, form.codFilial, form.dataPrevisaoEntrega, filialFixa])
 
   const carregarCatalogo = useCallback(async () => {
     if (admin && !fornecedorId) return
@@ -281,6 +305,7 @@ export default function PedidoCompraPage() {
       setMensagem(p.status === 'DIVERGENCIA'
         ? 'Pedido enviado. Alguns itens divergem do cadastro e passarão por reanálise do setor fiscal.'
         : 'Pedido enviado para análise do setor fiscal.')
+      setEnviado(p)
     } catch (err) {
       setErro(mensagemErro(err, 'Não foi possível enviar o pedido.'))
     } finally {
@@ -758,14 +783,31 @@ export default function PedidoCompraPage() {
       </div>
 
       {/* ---------------------------------------------------------- modais */}
+      {enviado && (
+        <Modal titulo="Pedido enviado" aoFechar={() => setEnviado(null)}
+               rodape={<button type="button" className="btn-primario" onClick={() => setEnviado(null)}>Entendi</button>}>
+          <div className="aviso sucesso">
+            O pedido <strong>{enviado.numero}</strong> foi enviado ao Grupo Papa e está aguardando análise.
+          </div>
+          {enviado.status === 'DIVERGENCIA'
+            ? <p>Alguns itens divergem do cadastro: eles passam por uma reanálise antes da análise de preços.</p>
+            : <p>Você pode acompanhar a situação em <strong>Pedidos de compra</strong>. Se precisar de ajuste, o pedido volta para você em revisão.</p>}
+        </Modal>
+      )}
+
       {modal?.tipo === 'enviar' && (
         <Modal titulo="Enviar pedido para análise" aoFechar={() => setModal(null)}
                rodape={<>
                  <button type="button" className="btn-secundario" onClick={() => setModal(null)}>Voltar</button>
                  <button type="button" className="btn-primario" onClick={enviar} disabled={salvando}>Confirmar envio</button>
                </>}>
-          <p>Você está enviando <strong>{itens.length} item(ns)</strong>, total de <strong>{formatarMoeda(totalPedido)}</strong>.</p>
-          <p>Depois do envio o pedido não pode ser alterado, a não ser que o setor fiscal o devolva.</p>
+          <div className="aviso info">
+            O pedido será <strong>enviado ao Grupo Papa</strong> para análise e aprovação. Só depois de aprovado ele vai para o WinThor.
+          </div>
+          <p>Você está enviando <strong>{itens.length} item(ns)</strong>, total de <strong>{formatarMoeda(totalPedido)}</strong>
+            {form.codFilial && <>, para a filial <strong>{form.codFilial}{nomeFilial(form.codFilial) ? ` - ${nomeFilial(form.codFilial)}` : ''}</strong></>}
+            {form.dataPrevisaoEntrega && <>, com entrega prevista para <strong>{formatarData(form.dataPrevisaoEntrega)}</strong></>}.</p>
+          <p>Depois do envio o pedido não pode ser alterado, a não ser que o Grupo Papa o devolva para revisão.</p>
           {itens.some((i) => !i.codProdErp) && (
             <div className="aviso atencao">O pedido tem produto novo: ele passa pela reanálise do cadastro antes da análise de preços.</div>
           )}
