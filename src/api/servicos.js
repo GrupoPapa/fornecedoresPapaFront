@@ -122,6 +122,10 @@ export const comprasApi = {
     http.post(`/api/pedidos-compra/${id}/cancelar`, { parecer }).then((r) => r.data),
   historico: (id) => http.get(`/api/pedidos-compra/${id}/historico`).then((r) => r.data),
   situacaoWinthor: (id) => http.get(`/api/pedidos-compra/${id}/winthor`).then((r) => r.data),
+  impressaoWinthor: (id, numPed) =>
+    http.get(`/api/pedidos-compra/${id}/winthor/pedidos/${numPed}/impressao`).then((r) => r.data),
+  impressaoWinthorAdmin: (numPed) =>
+    http.get(`/api/admin/pedidos-compra/winthor/${numPed}/impressao`).then((r) => r.data),
   exportar: (params) =>
     http.get('/api/pedidos-compra/exportar', { params, responseType: 'blob' }),
   // setor fiscal

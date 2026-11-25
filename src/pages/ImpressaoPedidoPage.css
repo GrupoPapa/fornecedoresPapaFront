@@ -1,0 +1,70 @@
+/* Layout do pedido de compra da rotina 210 do WinThor (A4 retrato). */
+.impressao-barra { max-width: 210mm; margin: 16px auto; display: flex; gap: 12px; align-items: center; justify-content: space-between; font-size: 13px; }
+.impressao-barra .botoes { display: flex; gap: 8px; }
+
+.folha-pedido {
+  width: 210mm; min-height: 297mm; margin: 0 auto 24px; padding: 10mm 10mm 12mm; box-sizing: border-box;
+  background: #fff; color: #000; box-shadow: 0 1px 6px rgba(0,0,0,.15);
+  font-family: Helvetica, Arial, sans-serif; font-size: 8.5pt; line-height: 1.35;
+  display: flex; flex-direction: column;
+}
+.folha-pedido b { font-weight: 700; }
+/* zera o estilo de tabela do portal dentro da folha */
+.folha-pedido table { width: auto; margin: 0; background: transparent; box-shadow: none; border-radius: 0; }
+.folha-pedido th, .folha-pedido td {
+  border: 0; background: transparent; color: #000; text-transform: none; letter-spacing: 0;
+  font-size: inherit; font-weight: 400; padding: 0; height: auto;
+}
+.folha-pedido tr, .folha-pedido tbody tr:hover { background: transparent; }
+.pc-titulo { font-weight: 700; font-size: 9.5pt; }
+.pc-linha { display: flex; justify-content: space-between; font-size: 8.5pt; }
+.pc-negrito { font-weight: 700; margin-bottom: 2px; }
+
+.folha-pedido .pc-bloco { width: 100%; border-collapse: collapse; border-top: 1px solid #000; margin-bottom: 2px; }
+.pc-bloco td { padding: 0 4px 0 0; vertical-align: top; }
+.pc-bloco td.rot { font-weight: 700; width: 17mm; white-space: nowrap; }
+.pc-empresa .pc-tipo { font-weight: 700; font-size: 10.5pt; vertical-align: middle; white-space: nowrap; }
+.pc-fornecedor { border-top: 1px solid #000; }
+
+.pc-condicoes { display: flex; justify-content: space-between; align-items: flex-start; gap: 6mm; margin-bottom: 4px; }
+.pc-condicoes > div:first-child { flex: 1; }
+.pc-dias { margin-left: 30mm; }
+.pc-datas { border-collapse: collapse; width: 68mm; flex: none; }
+.pc-datas th, .pc-datas td { border: 1px solid #000; padding: 2px 8px; text-align: center; font-weight: 400; }
+.pc-datas td { padding: 8px; }
+
+.folha-pedido .pc-itens { width: 100%; border-collapse: collapse; margin-top: 2px; }
+.pc-itens th { border: 1px solid #000; font-weight: 700; padding: 3px 3px; text-align: center; font-size: 8pt; }
+.pc-itens td { border-bottom: 1px solid #000; padding: 1px 3px; font-size: 6.5pt; text-align: left; }
+.pc-itens .num { text-align: right; }
+.pc-itens th.esq, .pc-itens td.esq { text-align: left; }
+
+.pc-rodape-valores { display: grid; grid-template-columns: 1fr 1.3fr 1fr; gap: 6px; margin-top: 10px; align-items: start; }
+.pc-volumes { padding-top: 32px; }
+.pc-qtd-itens { font-weight: 700; margin-left: 18mm; margin-bottom: 2px; }
+.pc-icms > div { display: flex; gap: 12px; }
+.pc-icms > div b { min-width: 22mm; text-align: right; }
+.pc-icms > div span { min-width: 18mm; text-align: right; }
+.pc-icms .pequeno { font-size: 7pt; }
+.folha-pedido .pc-totais { border-collapse: collapse; width: 100%; }
+.pc-totais th, .pc-totais td { border: 1px solid #000; padding: 1px 4px; }
+.pc-totais th { text-align: left; font-weight: 700; }
+.pc-totais td { text-align: right; font-weight: 700; }
+
+.pc-obs { margin-top: 6px; font-size: 9.5pt; }
+.pc-obs b { font-size: 9.5pt; }
+.pc-obs span { white-space: pre-line; font-size: 8.5pt; }
+.pc-avisos { text-align: center; margin-top: 14px; }
+.pc-aviso-nf { font-weight: 700; font-size: 7.5pt; margin-bottom: 2px; }
+.pc-aviso-link { font-weight: 700; font-size: 9.5pt; text-decoration: underline; }
+.pc-origem { font-weight: 700; font-size: 9.5pt; letter-spacing: .2px; margin-top: 2px; }
+
+.pc-assinaturas { margin-top: 42mm; display: flex; justify-content: space-between; gap: 20mm; }
+.pc-assinaturas > div { flex: 1; border-top: 1px solid #000; text-align: center; font-weight: 700; padding-top: 2px; }
+
+@media print {
+  @page { size: A4 portrait; margin: 0; }
+  body { background: #fff !important; }
+  .nao-imprimir { display: none !important; }
+  .folha-pedido { box-shadow: none; margin: 0; }
+}

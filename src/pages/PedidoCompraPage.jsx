@@ -780,6 +780,14 @@ export default function PedidoCompraPage() {
             Pedido(s) na 220: {[...new Set(situacao.itens.map((s) => s.numPed).filter(Boolean))].join(', ') || 'ainda não gerado'}
           </span>
         )}
+
+        {status === 'APROVADO' && situacao && !situacao.erro
+          && [...new Set((situacao.itens || []).map((s) => s.numPed).filter(Boolean))].map((np) => (
+            <a key={np} className="btn-primario" href={`/compras/${pedido.id}/impressao/${np}`}
+               target="_blank" rel="noreferrer" title="Pedido de compra do WinThor no layout da rotina 210">
+              Imprimir pedido {np} (PDF)
+            </a>
+          ))}
       </div>
 
       {/* ---------------------------------------------------------- modais */}

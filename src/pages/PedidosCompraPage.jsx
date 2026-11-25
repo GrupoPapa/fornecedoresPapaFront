@@ -139,6 +139,17 @@ function PedidosPortal() {
                   title={admin ? 'Modelo e importação para o fornecedor selecionado no filtro' : undefined}>
             Planilha Excel
           </button>
+          {admin && (
+            <form className="imprimir-winthor" title="Pedido de compra do WinThor no layout da rotina 210"
+                  onSubmit={(e) => {
+                    e.preventDefault()
+                    const n = String(new FormData(e.currentTarget).get('numPed') || '').replace(/\D/g, '')
+                    if (n) window.open(`/admin/impressao-pedido/${n}`, '_blank', 'noreferrer')
+                  }}>
+              <input name="numPed" inputMode="numeric" placeholder="Nº pedido WinThor" aria-label="Número do pedido no WinThor" />
+              <button type="submit" className="btn-secundario">Imprimir</button>
+            </form>
+          )}
           <button type="button" className="btn-secundario" onClick={() => exportar('xlsx')}>Exportar Excel</button>
           <button type="button" className="btn-secundario" onClick={() => exportar('csv')}>Exportar CSV</button>
           <button type="button" className={admin ? 'btn-secundario' : 'btn-primario'} onClick={novoPedido}

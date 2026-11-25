@@ -396,3 +396,5 @@ tr.linha-detalhe > td { background: #fafbfc; padding: 10px 14px 14px; }
 .ultima-entrada-detalhe .dif-maior { color: var(--cor-erro); font-weight: 600; }
 .ultima-entrada-detalhe .dif-menor { color: var(--cor-sucesso); font-weight: 600; }
 .valor-systock { display: block; font-size: 11px; color: var(--cor-texto-suave); white-space: nowrap; margin-top: 2px; }
+.imprimir-winthor { display: flex; gap: 4px; }
+.imprimir-winthor input { width: 150px; }

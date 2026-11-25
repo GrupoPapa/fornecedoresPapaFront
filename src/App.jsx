@@ -13,6 +13,7 @@ import FarListaPage from './pages/FarListaPage'
 import FarFormPage from './pages/FarFormPage'
 import FornecedoresPage from './pages/admin/FornecedoresPage'
 import UsuariosPage from './pages/admin/UsuariosPage'
+import ImpressaoPedidoPage from './pages/ImpressaoPedidoPage'
 
 export default function App() {
   return (
@@ -36,6 +37,11 @@ export default function App() {
         <Route path="/admin/usuarios"
                element={<RotaProtegida somenteAdmin><UsuariosPage /></RotaProtegida>} />
       </Route>
+
+      {/* impressao do pedido de compra do WinThor: pagina sem o menu do portal */}
+      <Route path="/compras/:id/impressao/:numPed" element={<RotaProtegida><ImpressaoPedidoPage /></RotaProtegida>} />
+      <Route path="/admin/impressao-pedido/:numPed"
+             element={<RotaProtegida somenteAdmin><ImpressaoPedidoPage /></RotaProtegida>} />
 
       <Route path="/trocar-senha" element={
         <RotaProtegida><TrocarSenhaPage /></RotaProtegida>
