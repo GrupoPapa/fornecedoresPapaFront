@@ -78,7 +78,7 @@ export default function PedidoCompraPage() {
   const [modal, setModal] = useState(null) // {tipo, parecer, codFilial, forcar}
   const [geraSugestao, setGeraSugestao] = useState(false)
   const [padroes, setPadroes] = useState(null) // { filialPadrao, prazoEntregaDias }
-  const [exigirDiretoria, setExigirDiretoria] = useState(true)
+  const [exigirDiretoria, setExigirDiretoria] = useState(false)
   const [enviado, setEnviado] = useState(null) // pedido recem-enviado (aviso)
 
   const editavel = novo || !!pedido?.editavel
@@ -125,7 +125,7 @@ export default function PedidoCompraPage() {
     comprasApi.filiais().then(setFiliais).catch(() => setFiliais([]))
     comprasApi.configuracao().then((c) => {
       setGeraSugestao(!!c.gerarSugestaoHabilitada)
-      setExigirDiretoria(c.exigirDiretoria !== false)
+      setExigirDiretoria(c.exigirDiretoria === true)
       setPadroes({ filialPadrao: c.filialPadrao || '', prazoEntregaDias: c.prazoEntregaDias ?? 15 })
     }).catch(() => setPadroes({ filialPadrao: '', prazoEntregaDias: 15 }))
   }, [])
@@ -750,15 +750,18 @@ export default function PedidoCompraPage() {
                     onClick={() => setModal({ tipo: 'reprovar', parecer: '' })}>Reprovar</button>
             <button type="button" className="btn-secundario" disabled={salvando}
                     onClick={() => setModal({ tipo: 'revisar', parecer: '' })}>Revisar</button>
-            {diretoria || !exigirDiretoria
-              ? <button type="button" className="btn-sucesso" disabled={salvando}
-                        onClick={() => setModal({ tipo: 'aprovar', parecer: '', codFilial: pedido.codFilial || '' })}>
-                  Aprovar pedido
-                </button>
-              : <button type="button" className="btn-sucesso" disabled={salvando}
-                        onClick={() => setModal({ tipo: 'aprovar', paraDiretoria: true, parecer: '', codFilial: pedido.codFilial || '' })}>
-                  Enviar para a diretoria
-                </button>}
+            {!diretoria && (
+              <button type="button" className={exigirDiretoria ? 'btn-sucesso' : 'btn-secundario'} disabled={salvando}
+                      onClick={() => setModal({ tipo: 'aprovar', paraDiretoria: true, parecer: '', codFilial: pedido.codFilial || '' })}>
+                Enviar para a diretoria
+              </button>
+            )}
+            {(diretoria || !exigirDiretoria) && (
+              <button type="button" className="btn-sucesso" disabled={salvando}
+                      onClick={() => setModal({ tipo: 'aprovar', parecer: '', codFilial: pedido.codFilial || '' })}>
+                Aprovar pedido
+              </button>
+            )}
           </>
         )}
 

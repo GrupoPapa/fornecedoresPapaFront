@@ -134,6 +134,7 @@ export const comprasApi = {
     http.post(`/api/admin/pedidos-compra/${id}/resolver-divergencia`, dados || {}).then((r) => r.data),
   aprovar: (id, dados) =>
     http.post(`/api/admin/pedidos-compra/${id}/aprovar`, dados || {}).then((r) => r.data),
+  excluir: (id) => http.delete(`/api/admin/pedidos-compra/${id}`),
   enviarDiretoria: (id, dados) =>
     http.post(`/api/admin/pedidos-compra/${id}/enviar-diretoria`, dados || {}).then((r) => r.data),
   devolverAnalise: (id, parecer) =>

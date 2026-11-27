@@ -84,6 +84,21 @@ function PedidosPortal() {
 
   const [importando, setImportando] = useState(false)
   const [historico, setHistorico] = useState(null) // { pedido, eventos, erro }
+  const [excluindo, setExcluindo] = useState(null) // { pedido, salvando, erro }
+
+  async function confirmarExclusao() {
+    const p = excluindo.pedido
+    setExcluindo((e) => ({ ...e, salvando: true, erro: '' }))
+    try {
+      await comprasApi.excluir(p.id)
+      setExcluindo(null)
+      setMensagemExclusao(`Pedido ${p.numero} excluído.`)
+      carregar()
+    } catch (err) {
+      setExcluindo((e) => ({ ...e, salvando: false, erro: mensagemErro(err, 'Não foi possível excluir o pedido.') }))
+    }
+  }
+  const [mensagemExclusao, setMensagemExclusao] = useState('')
 
   async function verHistorico(p) {
     setHistorico({ pedido: p, eventos: null })
@@ -172,6 +187,7 @@ function PedidosPortal() {
       </div>
 
       {erro && <div className="aviso erro">{erro}</div>}
+      {mensagemExclusao && <div className="aviso sucesso">{mensagemExclusao}</div>}
 
       {importando && (
         <ImportarPlanilha
@@ -260,12 +276,36 @@ function PedidosPortal() {
                   <button type="button" className="btn-secundario btn-pequeno" onClick={() => verHistorico(p)}>
                     Histórico
                   </button>
+                  {admin && !p.numSugestaoErp && (
+                    <button type="button" className="btn-perigo btn-pequeno" title="Excluir o pedido de vez"
+                            onClick={() => setExcluindo({ pedido: p })}>
+                      Excluir
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {excluindo && (
+        <Modal titulo={`Excluir o pedido ${excluindo.pedido.numero}`} aoFechar={() => !excluindo.salvando && setExcluindo(null)}
+               rodape={<>
+                 <button type="button" className="btn-secundario" disabled={excluindo.salvando} onClick={() => setExcluindo(null)}>Voltar</button>
+                 <button type="button" className="btn-perigo" disabled={excluindo.salvando} onClick={confirmarExclusao}>
+                   {excluindo.salvando ? 'Excluindo...' : 'Excluir de vez'}
+                 </button>
+               </>}>
+          {excluindo.erro && <div className="aviso erro">{excluindo.erro}</div>}
+          <div className="aviso atencao">
+            O pedido <strong>{excluindo.pedido.numero}</strong>
+            {excluindo.pedido.fornecedorNome && <> de <strong>{excluindo.pedido.fornecedorNome}</strong></>} será
+            apagado com os itens e o histórico. <strong>Não dá para desfazer.</strong>
+          </div>
+          <p className="texto-suave">Se quiser manter o registro, use <strong>Cancelar pedido</strong> dentro do pedido.</p>
+        </Modal>
+      )}
 
       {historico && (
         <Modal titulo={`Histórico do pedido ${historico.pedido.numero}`} aoFechar={() => setHistorico(null)}
