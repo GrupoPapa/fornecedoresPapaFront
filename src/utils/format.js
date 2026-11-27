@@ -147,3 +147,20 @@ export function formatarTamanho(bytes) {
   if (bytes < 1024 * 1024) return `${Math.round(bytes / 1024)} KB`
   return `${(bytes / 1024 / 1024).toLocaleString('pt-BR', { maximumFractionDigits: 1 })} MB`
 }
+
+/** Eventos do historico do pedido de compra. */
+export const ROTULO_EVENTO_COMPRA = {
+  CRIACAO: 'Pedido criado',
+  ENVIO: 'Enviado para análise',
+  REENVIO: 'Reenviado após reavaliação',
+  DIVERGENCIA: 'Divergência no cadastro',
+  CADASTRO_REANALISADO: 'Cadastro reanalisado',
+  DIVERGENCIA_LIBERADA: 'Divergência liberada pelo fiscal',
+  APROVACAO: 'Aprovado',
+  REVISAO: 'Devolvido para revisão',
+  REPROVACAO: 'Reprovado',
+  SUGESTAO_GERADA: 'Sugestão gerada no WinThor',
+  ERRO_SUGESTAO: 'Erro ao gerar a sugestão',
+  REABERTURA: 'Voltou para análise',
+  CANCELAMENTO: 'Cancelado'
+}

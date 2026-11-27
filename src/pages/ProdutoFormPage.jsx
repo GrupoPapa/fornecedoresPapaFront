@@ -61,6 +61,7 @@ export default function ProdutoFormPage() {
   const [salvando, setSalvando] = useState(false)
   const [carregando, setCarregando] = useState(editando)
   const [fotosPendentes, setFotosPendentes] = useState([])
+  const [qtdFotos, setQtdFotos] = useState(0) // fotos ja gravadas no produto
   const [pedidoInfo, setPedidoInfo] = useState(null)
   const [perguntarOutro, setPerguntarOutro] = useState(false)
   // conferencia de codigo de fabrica / EAN / DUN no portal e no WinThor: campo -> mensagem
@@ -187,6 +188,12 @@ export default function ProdutoFormPage() {
       return
     }
     setErro(''); setMensagem(''); setErros({})
+    // foto e obrigatoria: o fornecedor precisa anexar ao menos uma
+    if (!admin && qtdFotos + fotosPendentes.length === 0) {
+      setErros({ fotos: 'Inclua pelo menos uma foto do produto.' })
+      setErro('A foto do produto é obrigatória: inclua pelo menos uma imagem.')
+      return
+    }
     setSalvando(true)
     try {
       const dados = paraEnvio(form, tipoFornecedor)
@@ -425,7 +432,10 @@ export default function ProdutoFormPage() {
         <FotosProduto produtoId={editando ? Number(id) : null}
                       somenteLeitura={somenteLeitura}
                       pendentes={fotosPendentes}
-                      aoMudarPendentes={setFotosPendentes}
+                      aoMudarPendentes={(l) => { setFotosPendentes(l); setErros((e) => ({ ...e, fotos: undefined })) }}
+                      aoMudarQuantidade={setQtdFotos}
+                      obrigatoria
+                      erro={erros.fotos}
                       aoErro={setErro} />
 
         <div className="botoes">

@@ -10,9 +10,12 @@ const MAX_FOTOS = 5
  * e o formulario envia tudo depois de criar o registro.
  */
 export default function FotosProduto({
-  produtoId, somenteLeitura, pendentes, aoMudarPendentes, aoErro
+  produtoId, somenteLeitura, pendentes, aoMudarPendentes, aoErro, aoMudarQuantidade, obrigatoria = false, erro
 }) {
   const [fotos, setFotos] = useState([])
+
+  // avisa o formulario quantas fotos o produto ja tem gravadas (foto e obrigatoria)
+  useEffect(() => { aoMudarQuantidade?.(fotos.length) }, [fotos.length, aoMudarQuantidade])
   const [previas, setPrevias] = useState({})
   const [enviando, setEnviando] = useState(false)
   const [ampliada, setAmpliada] = useState(null)
@@ -103,7 +106,8 @@ export default function FotosProduto({
 
   return (
     <div className="campo">
-      <label>Fotos do produto</label>
+      <label>Fotos do produto{obrigatoria && ' *'}</label>
+      {erro && <span className="erro">{erro}</span>}
       <span className="ajuda">
         Até {MAX_FOTOS} imagens em JPG, PNG ou WEBP (máx. 5 MB cada).
         {!produtoId && ' As fotos são enviadas assim que o produto for salvo.'}

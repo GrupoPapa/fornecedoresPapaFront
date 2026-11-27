@@ -4,7 +4,8 @@ import { comprasApi, fornecedoresApi, importacaoApi } from '../api/servicos'
 import ImportarPlanilha from '../components/ImportarPlanilha'
 import { mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
-import { formatarData, formatarDataHora, formatarMoeda, ROTULO_STATUS_COMPRA } from '../utils/format'
+import { formatarData, formatarDataHora, formatarMoeda, ROTULO_EVENTO_COMPRA, ROTULO_STATUS_COMPRA } from '../utils/format'
+import Modal from '../components/Modal'
 import Campo from '../components/Campo'
 import Paginacao from '../components/Paginacao'
 import SugestoesSystock from '../components/SugestoesSystock'
@@ -82,6 +83,17 @@ function PedidosPortal() {
   }
 
   const [importando, setImportando] = useState(false)
+  const [historico, setHistorico] = useState(null) // { pedido, eventos, erro }
+
+  async function verHistorico(p) {
+    setHistorico({ pedido: p, eventos: null })
+    try {
+      const eventos = await comprasApi.historico(p.id)
+      setHistorico({ pedido: p, eventos })
+    } catch (err) {
+      setHistorico({ pedido: p, eventos: [], erro: mensagemErro(err, 'Não foi possível carregar o histórico.') })
+    }
+  }
 
   function abrirImportacao() {
     if (admin && !filtros.fornecedorId) {
@@ -244,12 +256,42 @@ function PedidosPortal() {
                     {admin && (p.status === 'EM_ANALISE' || p.status === 'DIVERGENCIA') ? 'Analisar'
                       : !admin && p.editavel ? 'Continuar' : 'Abrir'}
                   </button>
+                  <button type="button" className="btn-secundario btn-pequeno" onClick={() => verHistorico(p)}>
+                    Histórico
+                  </button>
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {historico && (
+        <Modal titulo={`Histórico do pedido ${historico.pedido.numero}`} aoFechar={() => setHistorico(null)}
+               rodape={<>
+                 <button type="button" className="btn-secundario" onClick={() => setHistorico(null)}>Fechar</button>
+                 <button type="button" className="btn-primario" onClick={() => navegar(`/compras/${historico.pedido.id}`)}>Abrir pedido</button>
+               </>}>
+          <p className="texto-suave" style={{ marginTop: 0 }}>
+            {historico.pedido.fornecedorNome && <>{historico.pedido.fornecedorNome} · </>}
+            <span className={`etiqueta ${historico.pedido.status}`}>{ROTULO_STATUS_COMPRA[historico.pedido.status]}</span>
+          </p>
+          {historico.erro && <div className="aviso erro">{historico.erro}</div>}
+          {historico.eventos === null && <p>Carregando...</p>}
+          {historico.eventos?.length === 0 && !historico.erro && <p className="texto-suave">Sem eventos registrados.</p>}
+          {historico.eventos?.length > 0 && (
+            <ul className="historico">
+              {historico.eventos.map((h) => (
+                <li key={h.id}>
+                  <strong>{ROTULO_EVENTO_COMPRA[h.evento] || h.evento}</strong>
+                  <span className="texto-suave"> · {formatarDataHora(h.dataEvento)} · {h.usuario}</span>
+                  {h.descricao && <p>{h.descricao}</p>}
+                </li>
+              ))}
+            </ul>
+          )}
+        </Modal>
+      )}
 
       <Paginacao pagina={dados.pagina} totalPaginas={dados.totalPaginas}
                  totalElementos={dados.totalElementos} aoMudar={setPagina} />

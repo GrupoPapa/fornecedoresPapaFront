@@ -5,29 +5,13 @@ import { mensagemErro } from '../api/http'
 import { useAuth } from '../context/AuthContext'
 import {
   decimalParaTexto, formatarData, formatarDataHora, formatarMoeda, formatarNumero, hojeIso, lerDecimal,
-  ROTULO_STATUS, ROTULO_STATUS_COMPRA, ROTULO_TIPO_COMPRA
-} from '../utils/format'
+  ROTULO_STATUS, ROTULO_STATUS_COMPRA, ROTULO_TIPO_COMPRA, ROTULO_EVENTO_COMPRA } from '../utils/format'
 import Campo from '../components/Campo'
 import Modal from '../components/Modal'
 import { UltimaEntrada } from '../components/SugestoesSystock'
 
 const LIMITE_CATALOGO = 2000
 
-const ROTULO_EVENTO = {
-  CRIACAO: 'Pedido criado',
-  ENVIO: 'Enviado para análise',
-  REENVIO: 'Reenviado após reavaliação',
-  DIVERGENCIA: 'Divergência no cadastro',
-  CADASTRO_REANALISADO: 'Cadastro reanalisado',
-  DIVERGENCIA_LIBERADA: 'Divergência liberada pelo fiscal',
-  APROVACAO: 'Aprovado',
-  REVISAO: 'Devolvido para revisão',
-  REPROVACAO: 'Reprovado',
-  SUGESTAO_GERADA: 'Sugestão gerada no WinThor',
-  ERRO_SUGESTAO: 'Erro ao gerar a sugestão',
-  REABERTURA: 'Voltou para análise',
-  CANCELAMENTO: 'Cancelado'
-}
 
 const ROTULO_VARIACAO = {
   ACIMA: 'Acima',
@@ -484,8 +468,8 @@ export default function PedidoCompraPage() {
           </div>
           {catalogo.avisoWinthor && <div className="aviso atencao">{catalogo.avisoWinthor}</div>}
           <p className="texto-suave" style={{ marginTop: 0 }}>
-            Produto que ainda não existe na lista? Cadastre-o primeiro em <strong>Cadastro de produtos</strong>;
-            ele aparece aqui marcado como <span className="item-novo">novo</span> e passa pela análise do cadastro.
+            Produto que ainda não existe na lista? Cadastre-o primeiro em <strong>Cadastro de produtos</strong>.
+            Ele aparece aqui depois que o Grupo Papa aprovar o cadastro e gravar o produto no WinThor.
           </p>
           <div className="filtros" style={{ marginBottom: 10 }}>
             <Campo label="Buscar produto">
@@ -710,7 +694,7 @@ export default function PedidoCompraPage() {
           <ul className="historico">
             {historico.map((h) => (
               <li key={h.id}>
-                <strong>{ROTULO_EVENTO[h.evento] || h.evento}</strong>
+                <strong>{ROTULO_EVENTO_COMPRA[h.evento] || h.evento}</strong>
                 <span className="texto-suave"> · {formatarDataHora(h.dataEvento)} · {h.usuario}</span>
                 {h.descricao && <p>{h.descricao}</p>}
               </li>
