@@ -45,7 +45,7 @@ export default function PedidosCompraPage() {
 }
 
 function PedidosPortal() {
-  const { admin } = useAuth()
+  const { admin, usuario } = useAuth()
   const navegar = useNavigate()
 
   const [dados, setDados] = useState({ conteudo: [], pagina: 0, totalPaginas: 0, totalElementos: 0 })
@@ -253,7 +253,8 @@ function PedidosPortal() {
                 <td className="acoes">
                   <button type="button" className="btn-primario btn-pequeno"
                           onClick={() => navegar(`/compras/${p.id}`)}>
-                    {admin && (p.status === 'EM_ANALISE' || p.status === 'DIVERGENCIA') ? 'Analisar'
+                    {admin && p.status === 'AGUARDANDO_DIRETORIA' && usuario?.aprovaDiretoria ? 'Aprovar'
+                      : admin && (p.status === 'EM_ANALISE' || p.status === 'DIVERGENCIA') ? 'Analisar'
                       : !admin && p.editavel ? 'Continuar' : 'Abrir'}
                   </button>
                   <button type="button" className="btn-secundario btn-pequeno" onClick={() => verHistorico(p)}>

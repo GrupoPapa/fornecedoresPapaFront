@@ -7,7 +7,7 @@ import Modal from '../../components/Modal'
 import Paginacao from '../../components/Paginacao'
 
 const VAZIO = { nome: '', email: '', perfil: 'FORNECEDOR', fornecedorId: '',
-  senhaProvisoria: '', ativo: true, enviarEmail: true }
+  senhaProvisoria: '', ativo: true, enviarEmail: true, aprovaDiretoria: false }
 
 export default function UsuariosPage() {
   const [dados, setDados] = useState({ conteudo: [], pagina: 0, totalPaginas: 0, totalElementos: 0 })
@@ -53,7 +53,8 @@ export default function UsuariosPage() {
       fornecedorId: edicao.perfil === 'FORNECEDOR' ? Number(edicao.fornecedorId) : null,
       senhaProvisoria: edicao.senhaProvisoria || null,
       ativo: edicao.ativo,
-      enviarEmail: edicao.enviarEmail !== false
+      enviarEmail: edicao.enviarEmail !== false,
+      aprovaDiretoria: edicao.perfil === 'ADMIN' ? !!edicao.aprovaDiretoria : false
     }
     try {
       if (edicao.id) {
@@ -132,7 +133,8 @@ export default function UsuariosPage() {
               <tr key={u.id}>
                 <td>{u.nome}</td>
                 <td>{u.email}</td>
-                <td>{u.perfil === 'ADMIN' ? 'Administrador' : 'Fornecedor'}</td>
+                <td>{u.perfil === 'ADMIN' ? 'Administrador' : 'Fornecedor'}
+                  {u.aprovaDiretoria && <span className="etiqueta AGUARDANDO_DIRETORIA" style={{ marginLeft: 6 }}>Diretoria</span>}</td>
                 <td>{u.fornecedorNome
                   ? `${u.fornecedorCodErp ? `${u.fornecedorCodErp} - ` : ''}${u.fornecedorNome}` : '-'}</td>
                 <td>{u.ativo ? 'Ativo' : 'Inativo'}</td>
@@ -190,6 +192,13 @@ export default function UsuariosPage() {
                     ))}
                   </select>
                 </Campo>
+              )}
+              {edicao.perfil === 'ADMIN' && (
+                <label className="caixa-selecao">
+                  <input type="checkbox" checked={!!edicao.aprovaDiretoria}
+                         onChange={(e) => setEdicao({ ...edicao, aprovaDiretoria: e.target.checked })} />
+                  <span>Diretoria: aprova os pedidos de compra enviados pelos analistas</span>
+                </label>
               )}
               <Campo label="Situação">
                 <select value={edicao.ativo ? '1' : '0'}

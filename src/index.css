@@ -398,3 +398,4 @@ tr.linha-detalhe > td { background: #fafbfc; padding: 10px 14px 14px; }
 .valor-systock { display: block; font-size: 11px; color: var(--cor-texto-suave); white-space: nowrap; margin-top: 2px; }
 .imprimir-winthor { display: flex; gap: 4px; }
 .imprimir-winthor input { width: 150px; }
+.etiqueta.AGUARDANDO_DIRETORIA { background: #f3e8fb; color: #6b2c91; }

@@ -53,7 +53,8 @@ export default function PedidoCompraPage() {
   const { id } = useParams()
   const [parametros] = useSearchParams()
   const navegar = useNavigate()
-  const { admin } = useAuth()
+  const { admin, usuario } = useAuth()
+  const diretoria = admin && !!usuario?.aprovaDiretoria
   const novo = !id
   const fornecedorParam = parametros.get('fornecedor')
 
@@ -77,6 +78,7 @@ export default function PedidoCompraPage() {
   const [modal, setModal] = useState(null) // {tipo, parecer, codFilial, forcar}
   const [geraSugestao, setGeraSugestao] = useState(false)
   const [padroes, setPadroes] = useState(null) // { filialPadrao, prazoEntregaDias }
+  const [exigirDiretoria, setExigirDiretoria] = useState(true)
   const [enviado, setEnviado] = useState(null) // pedido recem-enviado (aviso)
 
   const editavel = novo || !!pedido?.editavel
@@ -123,6 +125,7 @@ export default function PedidoCompraPage() {
     comprasApi.filiais().then(setFiliais).catch(() => setFiliais([]))
     comprasApi.configuracao().then((c) => {
       setGeraSugestao(!!c.gerarSugestaoHabilitada)
+      setExigirDiretoria(c.exigirDiretoria !== false)
       setPadroes({ filialPadrao: c.filialPadrao || '', prazoEntregaDias: c.prazoEntregaDias ?? 15 })
     }).catch(() => setPadroes({ filialPadrao: '', prazoEntregaDias: 15 }))
   }, [])
@@ -383,6 +386,14 @@ export default function PedidoCompraPage() {
       )}
       {status === 'EM_ANALISE' && !admin && (
         <div className="aviso info">Seu pedido está com o setor fiscal, que confere os preços antes de aprovar.</div>
+      )}
+      {status === 'AGUARDANDO_DIRETORIA' && (
+        <div className="aviso info">
+          {!admin && <>Seu pedido já foi conferido e está em aprovação final no Grupo Papa.</>}
+          {admin && !diretoria && <>Pedido analisado e enviado para a <strong>diretoria</strong>. Aguardando a aprovação.</>}
+          {diretoria && <>Pedido analisado e enviado para a sua aprovação.
+            {pedido.parecer && <> Parecer da análise: <em>{pedido.parecer}</em></>}</>}
+        </div>
       )}
       {status === 'APROVADO' && (
         <div className={`aviso ${pedido.statusIntegracao === 'ERRO' ? 'erro' : 'sucesso'}`}>
@@ -739,6 +750,26 @@ export default function PedidoCompraPage() {
                     onClick={() => setModal({ tipo: 'reprovar', parecer: '' })}>Reprovar</button>
             <button type="button" className="btn-secundario" disabled={salvando}
                     onClick={() => setModal({ tipo: 'revisar', parecer: '' })}>Revisar</button>
+            {diretoria || !exigirDiretoria
+              ? <button type="button" className="btn-sucesso" disabled={salvando}
+                        onClick={() => setModal({ tipo: 'aprovar', parecer: '', codFilial: pedido.codFilial || '' })}>
+                  Aprovar pedido
+                </button>
+              : <button type="button" className="btn-sucesso" disabled={salvando}
+                        onClick={() => setModal({ tipo: 'aprovar', paraDiretoria: true, parecer: '', codFilial: pedido.codFilial || '' })}>
+                  Enviar para a diretoria
+                </button>}
+          </>
+        )}
+
+        {diretoria && status === 'AGUARDANDO_DIRETORIA' && (
+          <>
+            <button type="button" className="btn-perigo" disabled={salvando}
+                    onClick={() => setModal({ tipo: 'reprovar', parecer: '' })}>Reprovar</button>
+            <button type="button" className="btn-secundario" disabled={salvando}
+                    onClick={() => setModal({ tipo: 'revisar', parecer: '' })}>Devolver ao fornecedor</button>
+            <button type="button" className="btn-secundario" disabled={salvando}
+                    onClick={() => setModal({ tipo: 'devolverAnalise', parecer: '' })}>Devolver para análise</button>
             <button type="button" className="btn-sucesso" disabled={salvando}
                     onClick={() => setModal({ tipo: 'aprovar', parecer: '', codFilial: pedido.codFilial || '' })}>
               Aprovar pedido
@@ -889,14 +920,35 @@ export default function PedidoCompraPage() {
         </Modal>
       )}
 
+      {modal?.tipo === 'devolverAnalise' && (
+        <Modal titulo="Devolver para análise" aoFechar={() => setModal(null)}
+               rodape={<>
+                 <button type="button" className="btn-secundario" onClick={() => setModal(null)}>Voltar</button>
+                 <button type="button" className="btn-primario" disabled={salvando || !modal.parecer?.trim()}
+                         onClick={() => acao(() => comprasApi.devolverAnalise(pedido.id, modal.parecer.trim()),
+                           'Pedido devolvido para a análise.')}>
+                   {salvando ? 'Devolvendo...' : 'Devolver'}
+                 </button>
+               </>}>
+          <p>O pedido volta para quem analisou, com o seu comentário. O fornecedor não é avisado.</p>
+          <Campo label="O que precisa ser revisto" obrigatorio>
+            <textarea maxLength={500} value={modal.parecer}
+                      onChange={(e) => setModal((m) => ({ ...m, parecer: e.target.value }))} />
+          </Campo>
+        </Modal>
+      )}
+
       {modal?.tipo === 'aprovar' && (
-        <Modal titulo="Aprovar pedido de compra" aoFechar={() => setModal(null)}
+        <Modal titulo={modal.paraDiretoria ? 'Enviar para a diretoria' : 'Aprovar pedido de compra'} aoFechar={() => setModal(null)}
                rodape={<>
                  <button type="button" className="btn-secundario" onClick={() => setModal(null)}>Voltar</button>
                  <button type="button" className="btn-sucesso" disabled={salvando || !modal.codFilial}
-                         onClick={() => acao(() => comprasApi.aprovar(pedido.id,
-                           { parecer: modal.parecer || null, codFilial: modal.codFilial }), textoAprovacao)}>
-                   {salvando ? 'Aprovando...' : 'Aprovar'}
+                         onClick={() => modal.paraDiretoria
+                           ? acao(() => comprasApi.enviarDiretoria(pedido.id,
+                             { parecer: modal.parecer || null, codFilial: modal.codFilial }), 'Pedido enviado para a aprovação da diretoria.')
+                           : acao(() => comprasApi.aprovar(pedido.id,
+                             { parecer: modal.parecer || null, codFilial: modal.codFilial }), textoAprovacao)}>
+                   {salvando ? 'Enviando...' : modal.paraDiretoria ? 'Enviar para a diretoria' : 'Aprovar'}
                  </button>
                </>}>
           <p>Total de <strong>{formatarMoeda(pedido.valorTotal)}</strong> em {itens.length} item(ns).</p>
@@ -919,7 +971,9 @@ export default function PedidoCompraPage() {
             </Campo>
           </div>
           <p className="texto-suave">
-            {geraSugestao
+            {modal.paraDiretoria
+              ? 'A diretoria recebe o pedido para aprovar. Só depois da aprovação dela a sugestão é gravada no WinThor.'
+              : geraSugestao
               ? 'Ao aprovar, a sugestão de compra é gravada no WinThor (PCSUGESTAOCOMPRAC) para ser importada na rotina 220.'
               : 'A gravação automática no WinThor está desligada: depois de aprovar, use "Gerar sugestão no WinThor" quando ela for habilitada.'}
           </p>
